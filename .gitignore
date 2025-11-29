@@ -1,0 +1,26 @@
+# --- Virtual Environment (Paling Penting) ---
+# Ini akan mencegah error ribuan file yang kamu alami tadi
+venv/
+env/
+.venv/
+.env
+
+# --- Python ---
+# File hasil compile otomatis, tidak perlu disimpan
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Distribusi / Installer ---
+dist/
+build/
+*.egg-info/
+
+# --- IDE / Editor Settings ---
+# Settingan khusus komputermu (VS Code, PyCharm, dll)
+.vscode/
+.idea/
+
+# --- OS Files ---
+.DS_Store
+Thumbs.db
