@@ -18,10 +18,10 @@ from rank_bm25 import BM25Okapi
 import textwrap
 
 # ==========================================
-# 1. KONFIGURASI HALAMAN & CSS PROFESIONAL
+# 1. KONFIGURASI HALAMAN & CSS SUPER PREMIUM
 # ==========================================
 st.set_page_config(
-    page_title="EduSearch - Sistem Temu Kembali Informasi",
+    page_title="EduSearch Pro - Sistem Temu Kembali Informasi",
     page_icon="🎓",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -34,134 +34,198 @@ except LookupError: nltk.download('stopwords')
 # --- CUSTOM CSS (TAMPILAN MEWAH & PROFESIONAL) ---
 st.markdown("""
 <style>
-    /* Import Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    /* 1. IMPORT FONT PREMIUM (Poppins & Inter) */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@500;600;700&display=swap');
     
     html, body, [class*="css"] {
         font-family: 'Inter', sans-serif;
+        color: #1e293b; /* Dark Slate for Text */
     }
     
-    /* 1. Sidebar Styling (Navy Blue Theme) */
-    [data-testid="stSidebar"] {
-        background-color: #0f172a; /* Warna Navy Gelap */
-        border-right: 1px solid #1e293b;
+    h1, h2, h3 {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 700;
+        color: #0f172a !important;
     }
-    [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
-        color: #f8fafc !important;
+
+    /* 2. SIDEBAR GELAP (NAVY THEME) - TEKS PUTIH */
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+        border-right: 1px solid #334155;
+    }
+    /* Memaksa semua elemen di sidebar jadi putih */
+    [data-testid="stSidebar"] * {
+        color: #f1f5f9 !important; 
     }
     [data-testid="stSidebar"] .stRadio label {
-        color: #cbd5e1 !important;
-        font-weight: 500;
-        font-size: 15px;
-        padding: 10px;
-        border-radius: 5px;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        padding: 10px 15px;
+        margin-bottom: 5px;
+        border-radius: 8px;
         transition: background 0.3s;
     }
+    /* Efek Hover Menu Sidebar */
     [data-testid="stSidebar"] .stRadio label:hover {
-        background-color: #1e293b;
-        color: white !important;
+        background-color: rgba(255,255,255,0.1);
+        cursor: pointer;
     }
-    
-    /* 2. Main Area Cards */
+    /* Menu Aktif */
+    [data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label[data-baseweb="radio"] > div:first-child {
+        background-color: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+    }
+
+    /* 3. CARD METRIK (DASHBOARD) */
     .metric-card {
         background: white;
-        padding: 20px;
-        border-radius: 12px;
-        border-left: 6px solid #2563eb; /* Aksen Biru */
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        padding: 25px;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         text-align: center;
-        transition: transform 0.2s;
+        transition: transform 0.2s, box-shadow 0.2s;
+        position: relative;
+        overflow: hidden;
+    }
+    .metric-card::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 6px;
+        background: linear-gradient(90deg, #2563eb, #06b6d4);
     }
     .metric-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
-    .metric-val { font-size: 28px; font-weight: 800; color: #1e293b; }
-    .metric-lbl { font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
-    
-    /* 3. Result Box (Kartu Hasil Pencarian) */
-    .result-box {
-        background-color: #ffffff;
-        padding: 18px;
+    .metric-val { 
+        font-size: 38px; 
+        font-weight: 800; 
+        color: #0f172a; 
+        font-family: 'Poppins', sans-serif;
+    }
+    .metric-lbl { 
+        font-size: 14px; 
+        color: #64748b; 
+        font-weight: 600; 
+        text-transform: uppercase; 
+        letter-spacing: 1px;
+        margin-top: 5px;
+    }
+
+    /* 4. TOMBOL VISUALISASI (TABS) YANG LEBIH BESAR */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 12px;
+        background-color: transparent;
+        padding-bottom: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 65px; /* Tinggi Tab Diperbesar */
+        background-color: #f8fafc;
         border-radius: 10px;
         border: 1px solid #e2e8f0;
-        margin-bottom: 16px;
-        transition: all 0.3s ease;
-        position: relative;
+        color: #64748b;
+        font-size: 16px; /* Font Besar */
+        font-weight: 600;
+        flex: 1; /* Tab memenuhi lebar */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #f1f5f9;
+        border-color: #cbd5e1;
+        color: #2563eb;
+    }
+    /* Tab Aktif (Selected) */
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+        color: white !important;
+        border: none;
+        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+    }
+
+    /* 5. HASIL PENCARIAN (RESULT BOX) */
+    .result-box {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 20px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        transition: all 0.3s;
     }
     .result-box:hover {
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
-        border-color: #cbd5e1;
-        top: -2px;
+        box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+        transform: translateY(-3px);
+        border-color: #bfdbfe;
     }
     .result-title a {
+        font-family: 'Poppins', sans-serif;
+        font-size: 20px;
+        font-weight: 600;
+        color: #1e40af;
         text-decoration: none;
-        color: #0f172a;
-        font-weight: 700;
-        font-size: 18px;
-        transition: color 0.2s;
     }
-    .result-title a:hover { color: #2563eb; }
+    .result-title a:hover { text-decoration: underline; color: #1e3a8a; }
     .result-meta {
-        font-size: 12px;
+        font-size: 13px;
         color: #64748b;
-        margin-top: 5px;
-        margin-bottom: 10px;
+        margin: 8px 0 12px 0;
         display: flex;
         gap: 15px;
+        align-items: center;
     }
-    .result-score {
+    .score-badge {
         background-color: #eff6ff;
-        color: #1d4ed8;
-        padding: 2px 8px;
+        color: #2563eb;
+        padding: 4px 10px;
         border-radius: 20px;
-        font-weight: 600;
-        font-size: 11px;
+        font-weight: 700;
+        font-size: 12px;
+        border: 1px solid #dbeafe;
     }
     .result-snippet {
-        font-size: 14px;
+        font-size: 15px;
         color: #334155;
         line-height: 1.6;
     }
-    
-    /* 4. Custom Buttons */
+
+    /* 6. TOMBOL UTAMA (GRADIENT BUTTON) */
     .stButton>button {
-        background: linear-gradient(to right, #2563eb, #1d4ed8);
+        background: linear-gradient(90deg, #2563eb 0%, #06b6d4 100%);
         color: white;
-        border-radius: 8px;
-        height: 3.5em;
-        font-weight: 700;
+        border-radius: 10px;
         border: none;
-        width: 100%;
-        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        height: 50px;
+        font-weight: 700;
+        font-size: 16px;
+        letter-spacing: 0.5px;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
     .stButton>button:hover {
-        background: linear-gradient(to right, #1d4ed8, #1e40af);
-        box-shadow: 0 6px 10px rgba(37, 99, 235, 0.3);
+        transform: scale(1.02);
+        box-shadow: 0 8px 15px rgba(37, 99, 235, 0.25);
+        color: white;
+    }
+
+    /* 7. HIGHLIGHT & UTILS */
+    .highlight { 
+        background-color: #fef08a; 
+        color: #854d0e; 
+        padding: 2px 4px; 
+        border-radius: 4px; 
+        font-weight: 700; 
     }
     
-    /* 5. Highlight Marker */
-    .highlight {
-        background-color: #fef08a;
-        padding: 0 3px;
-        border-radius: 3px;
-        color: #854d0e;
-        font-weight: 700;
-        border-bottom: 2px solid #eab308;
-    }
-    
-    /* 6. Tabs Styling */
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        border-radius: 5px;
-        background-color: #f1f5f9;
-        font-weight: 600;
-        color: #64748b;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #2563eb !important;
-        color: white !important;
+    /* Input Field Styling */
+    div[data-baseweb="input"] {
+        border-radius: 10px;
+        border: 1px solid #cbd5e1;
+        padding: 5px;
+        background-color: white;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -192,27 +256,23 @@ def preprocess_text(text, stemmer, stop_words):
 
 @st.cache_data
 def load_dataset():
-    """
-    Load Data Cerdas: Prioritaskan file hasil olahan Notebook (.csv bersih) 
-    agar aplikasi tidak perlu melakukan stemming ulang (instan).
-    """
+    """Smart Loader: Membaca data yang sudah diproses di notebook jika ada."""
     file_nb = 'Lampiran_Data_Bersih.csv'
     file_meta = 'Lampiran_Data_Mentah.csv'
     
-    # 1. Cek File Cache Notebook
+    # 1. Cek File Cache Notebook (Prioritas)
     if os.path.exists(file_nb) and os.path.exists(file_meta):
         try:
             df_nb = pd.read_csv(file_nb)
             if len(df_nb) > 50: 
                 df_meta = pd.read_csv(file_meta)
-                # Join Metadata dengan Clean Content
                 if 'Doc_ID' in df_meta.columns and 'Doc_ID' in df_nb.columns:
                     df = pd.merge(df_meta, df_nb[['Doc_ID', 'Clean_Content']], on='Doc_ID', how='left')
                     df['Clean_Content'] = df['Clean_Content'].fillna('')
-                    return df, "Cache Notebook (Ready)"
+                    return df, "Cache Notebook (Fast Load)"
         except Exception: pass
 
-    # 2. Fallback: Load Raw & Process (Jika file notebook hilang)
+    # 2. Fallback: Load Raw & Process
     try:
         raw_file = 'korpus_pendidikan_gabungan.csv'
         if not os.path.exists(raw_file):
@@ -230,22 +290,14 @@ def load_dataset():
                 for i, col in enumerate(row):
                     if 'http' in col: url_idx = i; break
                 if url_idx != -1:
-                    doc_id = row[0]
-                    title = ",".join(row[1 : url_idx - 1]).strip().strip('"')
-                    source = row[url_idx - 1].strip()
-                    url = row[url_idx].strip()
-                    date = ",".join(row[url_idx + 1 : -1]).strip().strip('"')
-                    content = row[-1].strip().strip('"')
-                    cleaned_rows.append([doc_id, title, source, url, date, content])
+                    cleaned_rows.append([row[0], ",".join(row[1:url_idx-1]).strip('"'), row[url_idx-1].strip(), row[url_idx].strip(), ",".join(row[url_idx+1:-1]).strip('"'), row[-1].strip('"')])
                     
         df_raw = pd.DataFrame(cleaned_rows, columns=['Doc_ID', 'Title', 'Source', 'URL', 'Date', 'Content'])
         
-        # Preprocessing on the fly (Tanpa batasan limit agar semua data masuk)
+        # Preprocessing on the fly (Tampilkan semua data tanpa limit)
         stemmer, stop_words = get_resources()
-        # REVISI: Menghapus batasan .head(200) agar semua data termuat
         df_raw['Clean_Content'] = df_raw['Content'].apply(lambda x: preprocess_text(str(x), stemmer, stop_words))
-        
-        return df_raw, "Mode: Full Raw Processing"
+        return df_raw, "Processed Raw (Full Data)"
         
     except Exception as e:
         return pd.DataFrame(), f"Error: {str(e)}"
@@ -276,11 +328,9 @@ def get_snippet(text, query):
     return ("..." if start>0 else "") + text[start:end] + "..."
 
 # ==========================================
-# 3. INITIALIZATION & SIDEBAR
+# 3. INITIALIZATION
 # ==========================================
-
-# Load Data
-with st.spinner("🚀 Memuat Sistem Cerdas..."):
+with st.spinner("🚀 Memuat Data & AI Engine..."):
     df, status_msg = load_dataset()
     if df.empty:
         st.error(f"Gagal memuat data. Pesan: {status_msg}")
@@ -291,25 +341,18 @@ with st.spinner("🚀 Memuat Sistem Cerdas..."):
 
 # Sidebar
 with st.sidebar:
-    st.markdown("<h1 style='text-align: center; color: white;'>🎓 EduSearch</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #94a3b8; font-size: 12px;'>Sistem Temu Kembali Informasi</p>", unsafe_allow_html=True)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/f/f1/Universitas_Syiah_Kuala_logo.svg", width=90)
+    st.markdown("<h2 style='color: white; margin-top: 10px;'>EduSearch Pro</h2>", unsafe_allow_html=True)
+    st.caption(f"Status: {status_msg}")
     st.markdown("---")
     
-    # Menu Navigasi
-    menu = st.radio("NAVIGASI UTAMA", 
-                    ["Dashboard", "Mesin Pencari", "Evaluasi Kinerja", "Dataset"],
+    menu = st.radio("MENU NAVIGASI", 
+                    ["Dashboard", "Mesin Pencari", "Evaluasi Kinerja", "Dataset Korpus"],
                     label_visibility="collapsed")
     
     st.markdown("---")
-    
-    # Info Dataset
-    st.markdown("### 📂 Info Data")
-    c1, c2 = st.columns(2)
-    with c1: st.metric("Dokumen", len(df))
-    with c2: st.metric("Status", "Ready")
-    
-    st.markdown("---")
-    st.markdown("<div style='text-align: center; color: #64748b; font-size: 12px;'>© Kelompok 10<br>Penelusuran Informasi 2025</div>", unsafe_allow_html=True)
+    st.markdown(f"**📚 Total Dokumen:** {len(df)}")
+    st.markdown("<br><div style='color:#94a3b8; font-size:12px;'>© 2025 Kelompok 10<br>Teknologi Pencarian Informasi</div>", unsafe_allow_html=True)
 
 # ==========================================
 # 4. HALAMAN UTAMA (KONTEN)
@@ -317,26 +360,27 @@ with st.sidebar:
 
 # --- PAGE 1: DASHBOARD ---
 if menu == "Dashboard":
-    st.markdown("<h2 style='color:#1e293b;'>📊 Dashboard Analisis Korpus</h2>", unsafe_allow_html=True)
-    st.markdown("Analisis visual mendalam mengenai distribusi kata dan topik dalam korpus berita pendidikan.")
+    st.markdown("<h2 style='margin-bottom:10px;'>📊 Dashboard Analisis Korpus</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#64748b; margin-bottom:30px;'>Statistik visual mendalam mengenai distribusi kata dan topik dalam korpus berita pendidikan.</p>", unsafe_allow_html=True)
     
-    # Metrics Overview
+    # Metrics
     all_text = " ".join(df['Clean_Content'])
     doc_lens = df['Clean_Content'].apply(lambda x: len(x.split()))
     
-    col1, col2, col3 = st.columns(3)
-    with col1: st.markdown(f"""<div class="metric-card"><div class="metric-val">{len(df)}</div><div class="metric-lbl">Total Artikel</div></div>""", unsafe_allow_html=True)
-    with col2: st.markdown(f"""<div class="metric-card"><div class="metric-val">{int(doc_lens.mean())}</div><div class="metric-lbl">Rata-rata Kata</div></div>""", unsafe_allow_html=True)
-    with col3: st.markdown(f"""<div class="metric-card"><div class="metric-val">{len(set(all_text.split())):,}</div><div class="metric-lbl">Kosakata Unik</div></div>""", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns(3)
+    with c1: st.markdown(f"""<div class="metric-card"><div class="metric-val">{len(df)}</div><div class="metric-lbl">Total Artikel</div></div>""", unsafe_allow_html=True)
+    with c2: st.markdown(f"""<div class="metric-card"><div class="metric-val">{int(doc_lens.mean())}</div><div class="metric-lbl">Rata-rata Kata</div></div>""", unsafe_allow_html=True)
+    with c3: st.markdown(f"""<div class="metric-card"><div class="metric-val">{len(set(all_text.split())):,}</div><div class="metric-lbl">Kosakata Unik</div></div>""", unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Visualisasi Utama
-    tab1, tab2, tab3 = st.tabs(["☁️ WordCloud", "📈 Tren Kata", "📉 Distribusi"])
+    # VISUALISASI UTAMA (TABS BESAR)
+    tab1, tab2, tab3 = st.tabs(["☁️ WordCloud Besar", "📊 Tren Kata & Frasa", "📉 Distribusi Data"])
     
     sns.set_style("whitegrid")
     PALETTE = "viridis"
-    
+    plt.rcParams.update({'font.size': 10, 'font.family': 'sans-serif'})
+ 
     with tab1:
         st.subheader("Kata Kunci Paling Dominan")
         # Wordcloud HD
@@ -353,24 +397,30 @@ if menu == "Dashboard":
             df_uni = pd.DataFrame(counter.most_common(15), columns=['Kata', 'Frekuensi'])
             fig1, ax1 = plt.subplots(figsize=(8, 6))
             sns.barplot(data=df_uni, x='Frekuensi', y='Kata', hue='Kata', palette=PALETTE, ax=ax1, legend=False)
-            ax1.set_xlabel("Frekuensi"); ax1.set_ylabel("")
+            ax1.set_xlabel("Frekuensi kemunculan (kali)"); ax1.set_ylabel("kata dasar")
             st.pyplot(fig1)
             
         with c_bi:
             st.markdown("**Top 10 Frasa (Bigram)**")
             try:
+                # FIX BIGRAM VISUALIZATION LOGIC
                 vec = CountVectorizer(ngram_range=(2, 2)).fit(df['Clean_Content'])
                 bag = vec.transform(df['Clean_Content'])
                 sum_words = bag.sum(axis=0) 
                 words_freq = sorted([(word, sum_words[0, idx]) for word, idx in vec.vocabulary_.items()], key=lambda x: x[1], reverse=True)[:10]
                 
-                x_bi, y_bi = zip(*words_freq)
-                labels_wrap = [textwrap.fill(lbl, 20) for lbl in x_bi]
+                # Buat DataFrame khusus untuk Seaborn agar rapi
+                df_bigram = pd.DataFrame(words_freq, columns=['Frasa', 'Frekuensi'])
+                
+                # Wrap text agar tidak menabrak
+                df_bigram['Frasa'] = df_bigram['Frasa'].apply(lambda x: textwrap.fill(x, 20))
                 
                 fig2, ax2 = plt.subplots(figsize=(8, 6))
-                sns.barplot(x=list(y_bi), y=list(range(len(y_bi))), hue=list(x_bi), palette=PALETTE, ax=ax2, legend=False)
-                ax2.set_yticks(range(len(y_bi))); ax2.set_yticklabels(labels_wrap)
-                ax2.set_xlabel("Frekuensi"); ax2.set_ylabel("")
+                
+                # Plot menggunakan DataFrame (lebih stabil)
+                sns.barplot(data=df_bigram, x='Frekuensi', y='Frasa', hue='Frasa', palette=PALETTE, ax=ax2, legend=False)
+                
+                ax2.set_xlabel("Frekuensi kemunculan (kali)"); ax2.set_ylabel("Frasa")
                 st.pyplot(fig2)
             except: st.info("Data Bigram belum cukup.")
 
@@ -380,8 +430,8 @@ if menu == "Dashboard":
             st.markdown("**Statistik Panjang Dokumen (Violin Plot)**")
             fig3, ax3 = plt.subplots(figsize=(8, 6))
             sns.violinplot(x=doc_lens, color='#482677', alpha=0.6, ax=ax3, inner="quart", width=0.9, cut=0)
-            ax3.set_xlabel("Jumlah Kata", fontweight='bold'); ax3.set_yticks([])
-            ax3.set_ylabel("Densitas", fontweight='bold')
+            ax3.set_xlabel("Jumlah Kata per dokumen", fontweight='bold'); ax3.set_yticks([])
+            ax3.set_ylabel("Kepadatan Distribusi (Densitas)", fontweight='bold')
             mean_val = doc_lens.mean()
             ax3.axvline(mean_val, color='red', linestyle='--', label=f'Avg: {mean_val:.0f}')
             ax3.legend()
@@ -397,28 +447,31 @@ if menu == "Dashboard":
                 ax4.add_artist(plt.Circle((0,0), 0.65, fc='white'))
                 st.pyplot(fig4)
             else: st.info("Metadata Sumber tidak tersedia.")
-
+            
+            
 # --- PAGE 2: PENCARIAN ---
 elif menu == "Mesin Pencari":
-    st.markdown("<h2 style='color:#1e293b;'>🔍 Pencarian Berita Pendidikan</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='margin-bottom:10px;'>🔍 Pencarian Berita Pendidikan</h2>", unsafe_allow_html=True)
     
-    # Search Box Design
+    # Search Bar Container
     with st.container():
-        st.markdown("<div style='margin-bottom: 10px;'>Masukkan kata kunci pencarian:</div>", unsafe_allow_html=True)
+        st.markdown("<div style='background:#f8fafc; padding:20px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:20px;'>", unsafe_allow_html=True)
         c_in, c_go = st.columns([5, 1])
         with c_in:
-            query = st.text_input("Search", placeholder="Contoh: kurikulum merdeka, beasiswa...", label_visibility="collapsed")
+            query = st.text_input("Kata Kunci", placeholder="Ketik topik (misal: kurikulum merdeka, beasiswa...)", label_visibility="collapsed")
         with c_go:
-            do_search = st.button("TELUSURI")
+            st.write("") # Spacer agar sejajar
+            btn_search = st.button("TELUSURI")
+        st.markdown("</div>", unsafe_allow_html=True)
             
     if query:
-        # Process
         clean_q = preprocess_text(query, stemmer, stop_words)
+        st.markdown(f"**Query Processed:** `{clean_q}`")
         
         # TF-IDF
         s = time.time()
-        q_vec = vectorizer.transform([clean_q])
-        sc_tf = cosine_similarity(q_vec, tfidf_matrix).flatten()
+        q_v = vectorizer.transform([clean_q])
+        sc_tf = cosine_similarity(q_v, tfidf_matrix).flatten()
         idx_tf = sc_tf.argsort()[-10:][::-1]
         t_tf = time.time() - s
         
@@ -428,10 +481,8 @@ elif menu == "Mesin Pencari":
         idx_bm = np.argsort(sc_bm)[-10:][::-1]
         t_bm = time.time() - s
         
-        st.markdown(f"**Hasil untuk:** `{query}` (Processed: `{clean_q}`)")
-        
         # Comparison Tabs
-        tab_a, tab_b = st.tabs([f"🔵 TF-IDF ({t_tf:.4f}s)", f"🟡 BM25 ({t_bm:.4f}s)"])
+        tab_a, tab_b = st.tabs([f"🔵 Hasil TF-IDF ({t_tf:.4f}s)", f"🟡 Hasil BM25 ({t_bm:.4f}s)"])
         
         def render_results(indices, scores, color_border):
             found = False
@@ -443,13 +494,13 @@ elif menu == "Mesin Pencari":
                     hl_snip = highlight_text(get_snippet(row['Content'], query), query)
                     
                     st.markdown(f"""
-                    <div class="result-box" style="border-left: 5px solid {color_border}">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div class="result-title"><a href="{row['URL']}" target="_blank">{hl_title}</a></div>
-                            <span class="result-score">Score: {scores[i]:.4f}</span>
-                        </div>
+                    <div class="result-container" style="border-left: 5px solid {color_border};">
+                        <div class="result-score-badge">Score: {scores[i]:.4f}</div>
+                        <div class="result-link"><a href="{row['URL']}" target="_blank">{hl_title}</a></div>
                         <div class="result-meta">
-                            <span>📅 {row['Date']}</span> &nbsp;•&nbsp; <span>📰 {row['Source']}</span>
+                            <span>📅 {row['Date']}</span>
+                            <span>•</span>
+                            <span>📰 {row['Source']}</span>
                         </div>
                         <div class="result-snippet">{hl_snip}</div>
                     </div>
@@ -457,33 +508,27 @@ elif menu == "Mesin Pencari":
             if not found: st.warning("Tidak ada dokumen yang relevan.")
             
         with tab_a: render_results(idx_tf, sc_tf, "#2563eb")
-        with tab_b: render_results(idx_bm, sc_bm, "#f59e0b")
+        with tab_b: render_results(idx_bm, sc_bm, "#eab308")
 
 # --- PAGE 3: EVALUASI ---
 elif menu == "Evaluasi Kinerja":
-    st.markdown("<h2 style='color:#1e293b;'>⚙️ Evaluasi Kinerja (Relevance Feedback)</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='margin-bottom:10px;'>⚙️ Evaluasi Kinerja (Matrix & Metrics)</h2>", unsafe_allow_html=True)
     
-    st.info("Karena dataset ini **unsupervised**, evaluasi dilakukan dengan metode **User Relevance Feedback**. Anda bertindak sebagai pakar yang menilai relevansi dokumen.")
+    st.info("ℹ️ **Cara Kerja:** Karena dataset ini unsupervised, Anda berperan sebagai pakar (Ground Truth) untuk menandai dokumen relevan.")
     
-    col_q, col_b = st.columns([3, 1])
-    with col_q:
-        q_eval = st.text_input("Query Uji", "pendidikan vokasi")
-    with col_b:
+    c_q, c_b = st.columns([3, 1])
+    with c_q: q_eval = st.text_input("Query Uji", "pendidikan vokasi")
+    with c_b: 
         st.write("")
-        st.write("") # Spacer
+        st.write("")
         btn_run = st.button("Mulai Evaluasi")
         
     if 'eval_session' not in st.session_state: st.session_state.eval_session = None
     
     if btn_run:
         cln = preprocess_text(q_eval, stemmer, stop_words)
-        # Get Candidates
-        tf_sc = cosine_similarity(vectorizer.transform([cln]), tfidf_matrix).flatten()
-        idx_t = tf_sc.argsort()[-10:][::-1]
-        
-        bm_sc = bm25.get_scores(cln.split())
-        idx_b = np.argsort(bm_sc)[-10:][::-1]
-        
+        idx_t = cosine_similarity(vectorizer.transform([cln]), tfidf_matrix).flatten().argsort()[-10:][::-1]
+        idx_b = np.argsort(bm25.get_scores(cln.split()))[-10:][::-1]
         st.session_state.eval_session = {'tf': idx_t, 'bm': idx_b}
         
     if st.session_state.eval_session:
@@ -503,82 +548,57 @@ elif menu == "Evaluasi Kinerja":
                 if st.checkbox(f"{i+1}. {df.iloc[idx]['Title']}", key=f"b_{i}"): sel_b.append(idx)
         
         st.markdown("---")
-        if st.button("📊 HITUNG METRIK EVALUASI"):
+        if st.button("🧮 HITUNG MATRIX EVALUASI"):
             truth = set(sel_t).union(set(sel_b))
             if not truth: st.error("Harap pilih minimal 1 dokumen yang relevan!"); st.stop()
             
-            # 1. Calculation Logic
-            def calculate_detailed(retrieved, relevant):
+            # Helper
+            def get_stats(retrieved, relevant):
                 ret_set = set(retrieved)
                 tp = len(ret_set.intersection(relevant))
                 fp = len(retrieved) - tp
-                
-                prec = tp / len(retrieved) if retrieved.size > 0 else 0
-                rec = tp / len(relevant) if len(relevant) > 0 else 0
-                f1 = (2 * prec * rec) / (prec + rec) if (prec + rec) > 0 else 0
-                
-                # MAP
-                hits = 0
-                sum_p = 0
+                prec = tp/len(retrieved); rec = tp/len(relevant)
+                f1 = (2*prec*rec)/(prec+rec) if (prec+rec)>0 else 0
+                hits=0; sum_p=0
                 for i, x in enumerate(retrieved):
-                    if x in relevant:
-                        hits += 1
-                        sum_p += hits / (i + 1)
-                ap = sum_p / len(relevant) if len(relevant) > 0 else 0
-                
-                return prec, rec, f1, ap, tp, fp
-
-            p1, r1, f11, map1, tp1, fp1 = calculate_detailed(res['tf'], truth)
-            p2, r2, f12, map2, tp2, fp2 = calculate_detailed(res['bm'], truth)
+                    if x in relevant: hits+=1; sum_p+=hits/(i+1)
+                ap = sum_p/len(relevant)
+                return tp, fp, prec, rec, f1, ap
             
-            # 2. Display Result Table
-            st.success("Perhitungan Selesai!")
+            tp1, fp1, p1, r1, f11, map1 = get_stats(res['tf'], truth)
+            tp2, fp2, p2, r2, f12, map2 = get_stats(res['bm'], truth)
             
-            res_df = pd.DataFrame({
-                "Metric": ["Precision@10", "Recall", "F1-Score", "MAP"],
-                "TF-IDF": [p1, r1, f11, map1],
-                "BM25": [p2, r2, f12, map2]
-            }).set_index("Metric")
+            # 1. MATRIX HEATMAP
+            st.subheader("🔥 Retrieval Performance Matrix")
+            col_mat, col_tab = st.columns([1, 1])
             
-            st.table(res_df.style.format("{:.4f}").background_gradient(cmap="Blues", axis=1))
+            with col_mat:
+                matrix_data = pd.DataFrame({'TF-IDF': [tp1, fp1], 'BM25': [tp2, fp2]}, index=['Relevan (TP)', 'Irrelevan (FP)'])
+                fig, ax = plt.subplots(figsize=(6, 4))
+                sns.heatmap(matrix_data, annot=True, fmt='d', cmap='Blues', linewidths=1, ax=ax, annot_kws={"size": 16, "weight": "bold"})
+                ax.set_title("Confusion Matrix (Top-10 Results)")
+                st.pyplot(fig)
             
-            # 3. Chart Perbandingan
-            st.subheader("Grafik Perbandingan Algoritma")
-            df_melt = res_df.reset_index().melt(id_vars="Metric", var_name="Algoritma", value_name="Skor")
-            fig, ax = plt.subplots(figsize=(8, 4))
-            sns.barplot(data=df_melt, x="Metric", y="Skor", hue="Algoritma", palette="viridis", ax=ax)
-            ax.set_ylim(0, 1.1); ax.legend(loc='upper right')
-            st.pyplot(fig)
-
-            # 4. Detail Perhitungan (Rumus)
-            st.markdown("### 📝 Rincian Perhitungan Manual")
-            st.info("Berikut adalah detail perhitungan berdasarkan dokumen yang Anda tandai sebagai relevan.")
+            # 2. METRIC TABLE
+            with col_tab:
+                eval_df = pd.DataFrame({
+                    "Metric": ["Precision", "Recall", "F1-Score", "MAP"],
+                    "TF-IDF": [p1, r1, f11, map1],
+                    "BM25": [p2, r2, f12, map2]
+                }).set_index("Metric")
+                st.table(eval_df.style.format("{:.4f}").background_gradient(cmap="Greens", axis=1))
             
-            tab_tf, tab_bm = st.tabs(["📘 Detail TF-IDF", "📙 Detail BM25"])
-            
-            total_rel = len(truth)
-            
-            with tab_tf:
-                st.markdown(f"**Data:** Diambil 10 dokumen. Relevan (TP) = {tp1}. Total Ground Truth = {total_rel}")
-                st.latex(rf"Precision = \frac{{TP}}{{Retrieved}} = \frac{{{tp1}}}{{10}} = {p1:.4f}")
-                st.latex(rf"Recall = \frac{{TP}}{{Total Relevan}} = \frac{{{tp1}}}{{{total_rel}}} = {r1:.4f}")
-                st.latex(rf"F1 = 2 \times \frac{{Precision \times Recall}}{{Precision + Recall}} = {f11:.4f}")
-                st.latex(rf"MAP = \frac{{\sum P@k}}{{Total Relevan}} = {map1:.4f}")
-
-            with tab_bm:
-                st.markdown(f"**Data:** Diambil 10 dokumen. Relevan (TP) = {tp2}. Total Ground Truth = {total_rel}")
-                st.latex(rf"Precision = \frac{{TP}}{{Retrieved}} = \frac{{{tp2}}}{{10}} = {p2:.4f}")
-                st.latex(rf"Recall = \frac{{TP}}{{Total Relevan}} = \frac{{{tp2}}}{{{total_rel}}} = {r2:.4f}")
-                st.latex(rf"F1 = 2 \times \frac{{Precision \times Recall}}{{Precision + Recall}} = {f12:.4f}")
-                st.latex(rf"MAP = \frac{{\sum P@k}}{{Total Relevan}} = {map2:.4f}")
+            # 3. KESIMPULAN
+            winner = "BM25" if map2 > map1 else "TF-IDF"
+            st.success(f"🏆 **Analisis:** Berdasarkan skor MAP, algoritma **{winner}** memberikan hasil yang lebih relevan untuk query ini.")
 
 # --- PAGE 4: DATASET ---
-elif menu == "Dataset":
-    st.markdown("<h2 style='color:#1e293b;'>📂 Eksplorasi Dataset</h2>", unsafe_allow_html=True)
+elif menu == "Dataset Korpus":
+    st.markdown("<h2 style='margin-bottom:10px;'>📂 Eksplorasi Dataset</h2>", unsafe_allow_html=True)
     
-    view_mode = st.radio("Pilih Tampilan:", ["Tabel Data Lengkap", "Perbandingan Raw vs Clean"], horizontal=True)
+    view_mode = st.radio("Mode Tampilan:", ["Tabel Lengkap", "Bandingkan Raw vs Clean"], horizontal=True)
     
-    if view_mode == "Tabel Data Lengkap":
+    if view_mode == "Tabel Lengkap":
         st.dataframe(df, use_container_width=True, height=1000)
     else:
         idx = st.number_input("Pilih Index Dokumen", 0, len(df)-1, 0)
