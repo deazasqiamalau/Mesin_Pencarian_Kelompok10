@@ -12,11 +12,14 @@ from wordcloud import WordCloud
 from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
 from nltk.corpus import stopwords
 import nltk
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from rank_bm25 import BM25Okapi
+import textwrap
 
-# --- 1. KONFIGURASI HALAMAN (HARUS PERTAMA) ---
+# ==========================================
+# 1. KONFIGURASI HALAMAN & CSS PROFESIONAL
+# ==========================================
 st.set_page_config(
     page_title="EduSearch - Sistem Temu Kembali Informasi",
     page_icon="🎓",
@@ -24,26 +27,24 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# --- 2. DOWNLOAD RESOURCE NLTK (SILENT) ---
+# Download Resource NLTK (Silent Mode)
 try: nltk.data.find('corpora/stopwords')
 except LookupError: nltk.download('stopwords')
-try: nltk.data.find('tokenizers/punkt')
-except LookupError: nltk.download('punkt')
 
-# --- 3. CUSTOM CSS (PROFESSIONAL UI/UX) ---
+# --- CUSTOM CSS (TAMPILAN MEWAH & PROFESIONAL) ---
 st.markdown("""
 <style>
-    /* Import Font Keren */
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap');
-
-    html, body, [class*="css"]  {
-        font-family: 'Roboto', sans-serif;
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Inter', sans-serif;
     }
-
-    /* SIDEBAR PROFESSIONAL STYLE */
+    
+    /* 1. Sidebar Styling (Navy Blue Theme) */
     [data-testid="stSidebar"] {
-        background-color: #0f172a; /* Dark Navy */
-        color: #f8fafc;
+        background-color: #0f172a; /* Warna Navy Gelap */
+        border-right: 1px solid #1e293b;
     }
     [data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
         color: #f8fafc !important;
@@ -51,121 +52,132 @@ st.markdown("""
     [data-testid="stSidebar"] .stRadio label {
         color: #cbd5e1 !important;
         font-weight: 500;
+        font-size: 15px;
+        padding: 10px;
+        border-radius: 5px;
+        transition: background 0.3s;
     }
-    [data-testid="stSidebar"] p, [data-testid="stSidebar"] li {
-        color: #94a3b8;
+    [data-testid="stSidebar"] .stRadio label:hover {
+        background-color: #1e293b;
+        color: white !important;
     }
     
-    /* Tombol Utama */
-    .stButton>button {
-        background-color: #2563eb;
-        color: white;
-        border-radius: 8px;
-        border: none;
-        height: 3em;
-        font-weight: bold;
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        background-color: #1d4ed8;
-        transform: scale(1.02);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-    }
-
-    /* Kartu Metrik Dashboard */
-    .metric-container {
-        background-color: white;
+    /* 2. Main Area Cards */
+    .metric-card {
+        background: white;
         padding: 20px;
-        border-radius: 10px;
-        border-left: 5px solid #2563eb;
+        border-radius: 12px;
+        border-left: 6px solid #2563eb; /* Aksen Biru */
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         text-align: center;
+        transition: transform 0.2s;
     }
-    .metric-value {
-        font-size: 28px;
-        font-weight: bold;
-        color: #1e293b;
-    }
-    .metric-label {
-        font-size: 14px;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-
-    /* Result Cards */
-    .result-card {
-        background: white;
-        padding: 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s;
-    }
-    .result-card:hover {
+    .metric-card:hover {
+        transform: translateY(-5px);
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-        border-color: #cbd5e1;
     }
-    .highlight {
-        background-color: #fef08a; /* Yellow highlight */
-        padding: 0 2px;
-        border-radius: 2px;
+    .metric-val { font-size: 28px; font-weight: 800; color: #1e293b; }
+    .metric-lbl { font-size: 13px; color: #64748b; text-transform: uppercase; letter-spacing: 1.2px; font-weight: 600; }
+    
+    /* 3. Result Box (Kartu Hasil Pencarian) */
+    .result-box {
+        background-color: #ffffff;
+        padding: 18px;
+        border-radius: 10px;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 16px;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    .result-box:hover {
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        border-color: #cbd5e1;
+        top: -2px;
+    }
+    .result-title a {
+        text-decoration: none;
+        color: #0f172a;
+        font-weight: 700;
+        font-size: 18px;
+        transition: color 0.2s;
+    }
+    .result-title a:hover { color: #2563eb; }
+    .result-meta {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 5px;
+        margin-bottom: 10px;
+        display: flex;
+        gap: 15px;
+    }
+    .result-score {
+        background-color: #eff6ff;
+        color: #1d4ed8;
+        padding: 2px 8px;
+        border-radius: 20px;
         font-weight: 600;
-        color: #854d0e;
+        font-size: 11px;
+    }
+    .result-snippet {
+        font-size: 14px;
+        color: #334155;
+        line-height: 1.6;
     }
     
-    /* Tabs */
-    .stTabs [data-baseweb="tab-list"] button [data-testid="stMarkdownContainer"] p {
-        font-size: 16px;
+    /* 4. Custom Buttons */
+    .stButton>button {
+        background: linear-gradient(to right, #2563eb, #1d4ed8);
+        color: white;
+        border-radius: 8px;
+        height: 3.5em;
+        font-weight: 700;
+        border: none;
+        width: 100%;
+        box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+    }
+    .stButton>button:hover {
+        background: linear-gradient(to right, #1d4ed8, #1e40af);
+        box-shadow: 0 6px 10px rgba(37, 99, 235, 0.3);
+    }
+    
+    /* 5. Highlight Marker */
+    .highlight {
+        background-color: #fef08a;
+        padding: 0 3px;
+        border-radius: 3px;
+        color: #854d0e;
+        font-weight: 700;
+        border-bottom: 2px solid #eab308;
+    }
+    
+    /* 6. Tabs Styling */
+    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        border-radius: 5px;
+        background-color: #f1f5f9;
         font-weight: 600;
+        color: #64748b;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #2563eb !important;
+        color: white !important;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --- 4. FUNGSI LOAD DATA (ROBUST) ---
-@st.cache_data
-def load_and_fix_csv(filename):
-    """Membaca CSV dengan penanganan error kolom yang kuat"""
-    cleaned_rows = []
-    try:
-        with open(filename, 'r', encoding='utf-8', errors='replace') as f:
-            reader = csv.reader(f)
-            try: header = next(reader)
-            except StopIteration: return pd.DataFrame()
-            
-            for row in reader:
-                while row and row[-1] == '': row.pop()
-                if not row: continue
-                
-                # Gunakan 'http' sebagai anchor point untuk memperbaiki kolom geser
-                url_index = -1
-                for i, col in enumerate(row):
-                    if 'http' in col:
-                        url_index = i
-                        break
-                
-                if url_index != -1:
-                    doc_id = row[0]
-                    title = ",".join(row[1 : url_index - 1]).strip().strip('"')
-                    source = row[url_index - 1].strip()
-                    url = row[url_index].strip()
-                    publish_date = ",".join(row[url_index + 1 : -1]).strip().strip('"')
-                    content = row[-1].strip().strip('"')
-                    cleaned_rows.append([doc_id, title, source, url, publish_date, content])
-                    
-        return pd.DataFrame(cleaned_rows, columns=['Doc_ID', 'Title', 'Source', 'URL', 'Date', 'Content'])
-    except FileNotFoundError: return pd.DataFrame()
+# ==========================================
+# 2. FUNGSI UTAMA (BACKEND LOGIC)
+# ==========================================
 
-# --- 5. PREPROCESSING & MODELING (CACHED) ---
 @st.cache_resource
 def get_resources():
     factory = StemmerFactory()
     stemmer = factory.create_stemmer()
     stop_words = set(stopwords.words('indonesian'))
-    # Tambah stopword berita
-    custom_stop = {'baca', 'juga', 'halaman', 'kompas', 'detik', 'com', 'wib', 'jakarta', 'copyright', 
-                   'advertisement', 'shutterstock', 'photo', 'news', 'yang', 'dan', 'di', 'ke', 'dari', 'ini', 'itu',
-                   'untuk', 'pada', 'adalah', 'sebagai', 'dengan', 'dalam', 'tribun', 'liputan6', 'penulis', 'editor'}
+    custom_stop = {'baca', 'juga', 'halaman', 'kompas', 'detik', 'com', 'wib', 'jakarta', 
+                   'terkait', 'untuk', 'pada', 'adalah', 'yang', 'dan', 'di', 'ke', 'dari', 
+                   'ini', 'itu', 'dengan', 'dalam', 'tribun', 'liputan6', 'penulis', 'editor'}
     stop_words.update(custom_stop)
     return stemmer, stop_words
 
@@ -173,425 +185,407 @@ def preprocess_text(text, stemmer, stop_words):
     if not isinstance(text, str): return ""
     text = text.lower()
     text = re.sub(r'http\S+', '', text)
-    text = re.sub(r'[^a-z\s]', '', text) # Hapus angka & simbol
+    text = re.sub(r'[^a-z\s]', '', text)
     tokens = text.split()
     clean_tokens = [stemmer.stem(w) for w in tokens if w not in stop_words and len(w) > 3]
     return " ".join(clean_tokens)
 
 @st.cache_data
 def load_dataset():
-    """Smart Loader: Cek cache notebook dulu, kalau gagal load raw"""
+    """
+    Load Data Cerdas: Prioritaskan file hasil olahan Notebook (.csv bersih) 
+    agar aplikasi tidak perlu melakukan stemming ulang (instan).
+    """
     file_nb = 'Lampiran_Data_Bersih.csv'
     file_meta = 'Lampiran_Data_Mentah.csv'
     
-    # 1. Coba load dari hasil Notebook (Cepat)
+    # 1. Cek File Cache Notebook
     if os.path.exists(file_nb) and os.path.exists(file_meta):
         try:
             df_nb = pd.read_csv(file_nb)
-            # FORCE LOAD RAW jika data notebook cuma sampel (< 100 baris)
-            if len(df_nb) > 100: 
+            if len(df_nb) > 50: 
                 df_meta = pd.read_csv(file_meta)
-                df = pd.merge(df_meta, df_nb[['Doc_ID', 'Clean_Content']], on='Doc_ID', how='left')
-                df['Clean_Content'] = df['Clean_Content'].fillna('')
-                return df, "Cache Notebook (Cepat)"
-        except: pass
-    
-    # 2. Fallback: Load Raw & Process (Lama)
-    df_raw = load_and_fix_csv('korpus_pendidikan_gabungan.csv')
-    if df_raw.empty: return pd.DataFrame(), "Error"
-    
-    stemmer, stop_words = get_resources()
-    
-    # Tampilkan loading state
-    placeholder = st.empty()
-    bar = st.progress(0)
-    clean_content = []
-    
-    for i, row in df_raw.iterrows():
-        clean_content.append(preprocess_text(row['Content'], stemmer, stop_words))
-        if i % 10 == 0:
-            prog = (i+1)/len(df_raw)
-            bar.progress(prog)
-            placeholder.text(f"⚙️ Sedang melakukan Stemming data {i+1}/{len(df_raw)}... Mohon tunggu.")
+                # Join Metadata dengan Clean Content
+                if 'Doc_ID' in df_meta.columns and 'Doc_ID' in df_nb.columns:
+                    df = pd.merge(df_meta, df_nb[['Doc_ID', 'Clean_Content']], on='Doc_ID', how='left')
+                    df['Clean_Content'] = df['Clean_Content'].fillna('')
+                    return df, "Cache Notebook (Ready)"
+        except Exception: pass
+
+    # 2. Fallback: Load Raw & Process (Jika file notebook hilang)
+    try:
+        raw_file = 'korpus_pendidikan_gabungan.csv'
+        if not os.path.exists(raw_file):
+            return pd.DataFrame(), "File CSV Tidak Ditemukan"
             
-    df_raw['Clean_Content'] = clean_content
-    placeholder.empty()
-    bar.empty()
-    return df_raw, "Raw Processed"
+        cleaned_rows = []
+        with open(raw_file, 'r', encoding='utf-8', errors='replace') as f:
+            reader = csv.reader(f)
+            try: next(reader)
+            except: pass
+            for row in reader:
+                while row and row[-1] == '': row.pop()
+                if not row: continue
+                url_idx = -1
+                for i, col in enumerate(row):
+                    if 'http' in col: url_idx = i; break
+                if url_idx != -1:
+                    doc_id = row[0]
+                    title = ",".join(row[1 : url_idx - 1]).strip().strip('"')
+                    source = row[url_idx - 1].strip()
+                    url = row[url_idx].strip()
+                    date = ",".join(row[url_idx + 1 : -1]).strip().strip('"')
+                    content = row[-1].strip().strip('"')
+                    cleaned_rows.append([doc_id, title, source, url, date, content])
+                    
+        df_raw = pd.DataFrame(cleaned_rows, columns=['Doc_ID', 'Title', 'Source', 'URL', 'Date', 'Content'])
+        
+        # Preprocessing on the fly (Tanpa batasan limit agar semua data masuk)
+        stemmer, stop_words = get_resources()
+        # REVISI: Menghapus batasan .head(200) agar semua data termuat
+        df_raw['Clean_Content'] = df_raw['Content'].apply(lambda x: preprocess_text(str(x), stemmer, stop_words))
+        
+        return df_raw, "Mode: Full Raw Processing"
+        
+    except Exception as e:
+        return pd.DataFrame(), f"Error: {str(e)}"
 
 @st.cache_resource
-def build_search_engine(corpus):
-    # TF-IDF
+def build_engine(corpus):
     vectorizer = TfidfVectorizer()
     tfidf_matrix = vectorizer.fit_transform(corpus)
-    
-    # BM25
     tokenized_corpus = [doc.split() for doc in corpus]
     bm25 = BM25Okapi(tokenized_corpus)
-    
     return vectorizer, tfidf_matrix, bm25
 
 # --- HELPER GUI ---
 def highlight_text(text, query):
-    if not query: return text
-    query_terms = query.lower().split()
-    query_terms.sort(key=len, reverse=True)
-    for term in query_terms:
+    if not query or not isinstance(text, str): return text
+    terms = sorted(query.lower().split(), key=len, reverse=True)
+    for term in terms:
         if len(term) > 2:
             pattern = re.compile(re.escape(term), re.IGNORECASE)
             text = pattern.sub(lambda m: f"<span class='highlight'>{m.group(0)}</span>", text)
     return text
 
-def get_snippet(text, query, limit=160):
-    if not query: return text[:limit] + "..."
-    text_lower = text.lower()
-    start = -1
-    for q in query.lower().split():
-        start = text_lower.find(q)
-        if start != -1: break
-    
-    if start == -1: return text[:limit] + "..."
-    
-    start_pos = max(0, start - 60)
-    end_pos = min(len(text), start + 100)
-    return ("..." if start_pos>0 else "") + text[start_pos:end_pos] + ("..." if end_pos<len(text) else "")
+def get_snippet(text, query):
+    if not isinstance(text, str): return ""
+    start = text.lower().find(query.lower().split()[0]) if query else -1
+    if start == -1: return text[:160] + "..."
+    start = max(0, start - 60); end = min(len(text), start + 160)
+    return ("..." if start>0 else "") + text[start:end] + "..."
 
-# --- 6. INISIALISASI ---
-with st.spinner("🚀 Memuat Sistem EduSearch..."):
-    df, status = load_dataset()
+# ==========================================
+# 3. INITIALIZATION & SIDEBAR
+# ==========================================
+
+# Load Data
+with st.spinner("🚀 Memuat Sistem Cerdas..."):
+    df, status_msg = load_dataset()
     if df.empty:
-        st.error("Data korpus tidak ditemukan. Pastikan file CSV ada.")
+        st.error(f"Gagal memuat data. Pesan: {status_msg}")
         st.stop()
-    
-    vectorizer, tfidf_matrix, bm25 = build_search_engine(df['Clean_Content'].tolist())
+    df['Clean_Content'] = df['Clean_Content'].fillna('').astype(str)
+    vectorizer, tfidf_matrix, bm25 = build_engine(df['Clean_Content'].tolist())
     stemmer, stop_words = get_resources()
 
-# --- 7. SIDEBAR ---
+# Sidebar
 with st.sidebar:
-    st.title("🎓 EduSearch")
-    st.caption("Penelusuran Informasi Pendidikan")
+    st.markdown("<h1 style='text-align: center; color: white;'>🎓 EduSearch</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #94a3b8; font-size: 12px;'>Sistem Temu Kembali Informasi</p>", unsafe_allow_html=True)
     st.markdown("---")
     
-    # MENU UTAMA (Updated)
-    menu = st.radio("MENU UTAMA", 
-        ["Dashboard", "Pencarian (Search)", "Visualisasi Korpus", "📂 Dataset Korpus", "Evaluasi Sistem"],
-        label_visibility="collapsed"
-    )
+    # Menu Navigasi
+    menu = st.radio("NAVIGASI UTAMA", 
+                    ["Dashboard", "Mesin Pencari", "Evaluasi Kinerja", "Dataset"],
+                    label_visibility="collapsed")
     
     st.markdown("---")
-    st.markdown("### 📊 Status Sistem")
-    st.markdown(f"**Dokumen:** {len(df)}")
-    st.markdown(f"**Mode Data:** {status}")
-    st.markdown(f"**Algoritma:** TF-IDF & BM25")
+    
+    # Info Dataset
+    st.markdown("### 📂 Info Data")
+    c1, c2 = st.columns(2)
+    with c1: st.metric("Dokumen", len(df))
+    with c2: st.metric("Status", "Ready")
     
     st.markdown("---")
-    st.info("**Kelompok 10**\n\nAdinda Muarriva\nDea Zasqia P. Malau\nTasya Zahrani")
+    st.markdown("<div style='text-align: center; color: #64748b; font-size: 12px;'>© Kelompok 10<br>Penelusuran Informasi 2025</div>", unsafe_allow_html=True)
 
-# ================= MENU 1: DASHBOARD (HOME) =================
+# ==========================================
+# 4. HALAMAN UTAMA (KONTEN)
+# ==========================================
+
+# --- PAGE 1: DASHBOARD ---
 if menu == "Dashboard":
-    st.header("Selamat Datang di EduSearch 🎓")
-    st.markdown("Sistem temu kembali informasi (Information Retrieval) khusus untuk topik **Pendidikan di Indonesia**.")
+    st.markdown("<h2 style='color:#1e293b;'>📊 Dashboard Analisis Korpus</h2>", unsafe_allow_html=True)
+    st.markdown("Analisis visual mendalam mengenai distribusi kata dan topik dalam korpus berita pendidikan.")
     
-    # 3 Kartu Metrik Utama
-    c1, c2, c3 = st.columns(3)
-    
+    # Metrics Overview
     all_text = " ".join(df['Clean_Content'])
-    total_words = len(all_text.split())
-    vocab_size = len(set(all_text.split()))
+    doc_lens = df['Clean_Content'].apply(lambda x: len(x.split()))
     
-    with c1:
-        st.markdown(f"""
-        <div class="metric-container">
-            <div class="metric-value">{len(df)}</div>
-            <div class="metric-label">Total Dokumen</div>
-        </div>
-        """, unsafe_allow_html=True)
+    col1, col2, col3 = st.columns(3)
+    with col1: st.markdown(f"""<div class="metric-card"><div class="metric-val">{len(df)}</div><div class="metric-lbl">Total Artikel</div></div>""", unsafe_allow_html=True)
+    with col2: st.markdown(f"""<div class="metric-card"><div class="metric-val">{int(doc_lens.mean())}</div><div class="metric-lbl">Rata-rata Kata</div></div>""", unsafe_allow_html=True)
+    with col3: st.markdown(f"""<div class="metric-card"><div class="metric-val">{len(set(all_text.split())):,}</div><div class="metric-lbl">Kosakata Unik</div></div>""", unsafe_allow_html=True)
     
-    with c2:
-        st.markdown(f"""
-        <div class="metric-container">
-            <div class="metric-value">{total_words:,}</div>
-            <div class="metric-label">Total Kata (Token)</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-    with c3:
-        st.markdown(f"""
-        <div class="metric-container">
-            <div class="metric-value">{vocab_size:,}</div>
-            <div class="metric-label">Kosakata Unik</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("### 📌 Tentang Aplikasi")
-    st.markdown("""
-    Aplikasi ini dibangun untuk memenuhi **Projek Akhir Mata Kuliah Penelusuran Informasi 2025**.
+    st.markdown("<br>", unsafe_allow_html=True)
     
-    **Fitur Utama:**
-    * 🔍 **Vertical Search Engine:** Fokus pada domain pendidikan.
-    * 🤖 **Dual Algorithm:** Membandingkan TF-IDF (Vector Space Model) dan BM25 (Probabilistic Model).
-    * 📈 **Visual Analytics:** Analisis korpus menggunakan WordCloud dan N-Grams.
-    * ⚙️ **Evaluation Metrics:** Perhitungan otomatis Precision, Recall, F1-Score, dan MAP.
-    """)
-
-# ================= MENU 2: PENCARIAN (SEARCH) =================
-elif menu == "Pencarian (Search)":
-    st.title("🔍 Pencarian Berita")
+    # Visualisasi Utama
+    tab1, tab2, tab3 = st.tabs(["☁️ WordCloud", "📈 Tren Kata", "📉 Distribusi"])
     
-    # Search Bar Mewah
-    col_search, col_act = st.columns([5, 1])
-    with col_search:
-        query = st.text_input("", placeholder="Ketik kata kunci (misal: kurikulum merdeka, beasiswa)...", label_visibility="collapsed")
-    with col_act:
-        search = st.button("CARI")
-        
-    if query:
-        # Preprocessing Query
-        clean_q = preprocess_text(query, stemmer, stop_words)
-        
-        # 1. TF-IDF Process
-        start = time.time()
-        q_vec = vectorizer.transform([clean_q])
-        tfidf_sc = cosine_similarity(q_vec, tfidf_matrix).flatten()
-        idx_tfidf = tfidf_sc.argsort()[-10:][::-1]
-        time_tfidf = time.time() - start
-        
-        # 2. BM25 Process
-        start = time.time()
-        bm25_sc = bm25.get_scores(clean_q.split())
-        idx_bm25 = np.argsort(bm25_sc)[-10:][::-1]
-        time_bm25 = time.time() - start
-        
-        st.success(f"Ditemukan hasil untuk: **'{query}'** (Processed: '{clean_q}')")
-        
-        # TABS HASIL
-        tab_t, tab_b = st.tabs(["🔵 Hasil TF-IDF", "🟡 Hasil BM25"])
-        
-        # Fungsi Render Hasil
-        def render_results(indices, scores, time_taken, method_name, color_border):
-            st.caption(f"⏱️ Waktu Eksekusi: {time_taken:.5f} detik")
-            if scores[indices[0]] == 0:
-                st.warning("Tidak ada dokumen yang relevan ditemukan.")
-                return
-
-            for rank, i in enumerate(indices):
-                score = scores[i]
-                if score > 0.001:
-                    row = df.iloc[i]
-                    snippet = highlight_text(get_snippet(row['Content'], query), query)
-                    title = highlight_text(row['Title'], query)
-                    
-                    st.markdown(f"""
-                    <div class="result-card" style="border-left: 5px solid {color_border};">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <h4 style="margin:0;"><a href="{row['URL']}" target="_blank" style="text-decoration:none; color:#1e293b;">{title}</a></h4>
-                            <span style="background-color:{color_border}; color:white; padding:2px 8px; border-radius:10px; font-size:12px;">Score: {score:.4f}</span>
-                        </div>
-                        <div style="font-size:12px; color:#64748b; margin-top:5px;">
-                            📅 {row['Date']} | 📰 {row['Source']} | 🏅 Rank #{rank+1}
-                        </div>
-                        <p style="font-size:14px; color:#334155; margin-top:10px; line-height:1.5;">
-                            {snippet}
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-        with tab_t:
-            render_results(idx_tfidf, tfidf_sc, time_tfidf, "TF-IDF", "#2563eb") # Blue
-            
-        with tab_b:
-            render_results(idx_bm25, bm25_sc, time_bm25, "BM25", "#f59e0b") # Amber
-
-# ================= MENU 3: VISUALISASI PRO =================
-elif menu == "Visualisasi Korpus":
-    st.title("📈 Visualisasi Data Korpus")
-    
-    # Setup Data Visual
-    all_text = " ".join(df['Clean_Content'])
-    words = all_text.split()
-    word_counts = Counter(words)
-    
-    # Gunakan Seaborn Theme
-    sns.set_theme(style="whitegrid")
-    
-    tab1, tab2, tab3 = st.tabs(["Kata Kunci (WordCloud)", "Frekuensi Kata (Bar)", "Distribusi Data"])
+    sns.set_style("whitegrid")
+    PALETTE = "viridis"
     
     with tab1:
-        st.subheader("☁️ WordCloud")
-        st.caption("Representasi visual kata-kata yang paling sering muncul dalam korpus.")
-        
-        wc = WordCloud(
-            width=1200, height=600, 
-            background_color='white', 
-            colormap='cividis', # Warna pro (biru-kuning)
-            max_words=150,
-            contour_width=0
-        ).generate(all_text)
-        
+        st.subheader("Kata Kunci Paling Dominan")
+        # Wordcloud HD
+        wc = WordCloud(width=1600, height=700, background_color='white', colormap=PALETTE, max_words=150, contour_width=0, stopwords=set(), collocations=False).generate(all_text)
         fig, ax = plt.subplots(figsize=(12, 6))
-        ax.imshow(wc, interpolation='bilinear')
-        ax.axis('off')
+        ax.imshow(wc, interpolation='bilinear'); ax.axis('off')
         st.pyplot(fig)
         
     with tab2:
-        st.subheader("📊 Top 15 Kata Kunci")
-        
-        df_freq = pd.DataFrame(word_counts.most_common(15), columns=['Kata', 'Frekuensi'])
-        
-        fig, ax = plt.subplots(figsize=(10, 6))
-        sns.barplot(data=df_freq, x='Frekuensi', y='Kata', palette='viridis', ax=ax)
-        ax.set_title("15 Kata Paling Dominan", fontsize=14, fontweight='bold')
-        ax.set_xlabel("Jumlah Kemunculan")
-        sns.despine(left=True, bottom=True)
-        st.pyplot(fig)
-        
-    with tab3:
-        c1, c2 = st.columns(2)
-        
-        with c1:
-            st.markdown("**📄 Distribusi Panjang Dokumen**")
-            doc_lens = df['Clean_Content'].apply(lambda x: len(x.split()))
-            fig, ax = plt.subplots(figsize=(6, 4))
-            sns.histplot(doc_lens, kde=True, color='#4e73df', bins=20, ax=ax)
-            ax.set_xlabel("Jumlah Kata")
-            st.pyplot(fig)
+        c_uni, c_bi = st.columns(2)
+        with c_uni:
+            st.markdown("**Top 15 Kata (Unigram)**")
+            counter = Counter(all_text.split())
+            df_uni = pd.DataFrame(counter.most_common(15), columns=['Kata', 'Frekuensi'])
+            fig1, ax1 = plt.subplots(figsize=(8, 6))
+            sns.barplot(data=df_uni, x='Frekuensi', y='Kata', hue='Kata', palette=PALETTE, ax=ax1, legend=False)
+            ax1.set_xlabel("Frekuensi"); ax1.set_ylabel("")
+            st.pyplot(fig1)
             
-        with c2:
-            st.markdown("**📰 Sumber Berita**")
+        with c_bi:
+            st.markdown("**Top 10 Frasa (Bigram)**")
+            try:
+                vec = CountVectorizer(ngram_range=(2, 2)).fit(df['Clean_Content'])
+                bag = vec.transform(df['Clean_Content'])
+                sum_words = bag.sum(axis=0) 
+                words_freq = sorted([(word, sum_words[0, idx]) for word, idx in vec.vocabulary_.items()], key=lambda x: x[1], reverse=True)[:10]
+                
+                x_bi, y_bi = zip(*words_freq)
+                labels_wrap = [textwrap.fill(lbl, 20) for lbl in x_bi]
+                
+                fig2, ax2 = plt.subplots(figsize=(8, 6))
+                sns.barplot(x=list(y_bi), y=list(range(len(y_bi))), hue=list(x_bi), palette=PALETTE, ax=ax2, legend=False)
+                ax2.set_yticks(range(len(y_bi))); ax2.set_yticklabels(labels_wrap)
+                ax2.set_xlabel("Frekuensi"); ax2.set_ylabel("")
+                st.pyplot(fig2)
+            except: st.info("Data Bigram belum cukup.")
+
+    with tab3:
+        c_vio, c_pie = st.columns(2)
+        with c_vio:
+            st.markdown("**Statistik Panjang Dokumen (Violin Plot)**")
+            fig3, ax3 = plt.subplots(figsize=(8, 6))
+            sns.violinplot(x=doc_lens, color='#482677', alpha=0.6, ax=ax3, inner="quart", width=0.9, cut=0)
+            ax3.set_xlabel("Jumlah Kata", fontweight='bold'); ax3.set_yticks([])
+            ax3.set_ylabel("Densitas", fontweight='bold')
+            mean_val = doc_lens.mean()
+            ax3.axvline(mean_val, color='red', linestyle='--', label=f'Avg: {mean_val:.0f}')
+            ax3.legend()
+            st.pyplot(fig3)
+            
+        with c_pie:
+            st.markdown("**Sumber Berita (Donut Chart)**")
             if 'Source' in df.columns:
-                src_counts = df['Source'].value_counts().head(5)
-                fig, ax = plt.subplots(figsize=(6, 4))
-                colors = sns.color_palette('pastel')[0:5]
-                ax.pie(src_counts, labels=src_counts.index, autopct='%.1f%%', colors=colors, startangle=90)
-                st.pyplot(fig)
+                src_counts = df['Source'].value_counts().head(7)
+                colors = sns.color_palette(PALETTE, len(src_counts))
+                fig4, ax4 = plt.subplots(figsize=(8, 6))
+                ax4.pie(src_counts, labels=src_counts.index, autopct='%1.1f%%', startangle=140, colors=colors, pctdistance=0.85, explode=[0.05]*len(src_counts))
+                ax4.add_artist(plt.Circle((0,0), 0.65, fc='white'))
+                st.pyplot(fig4)
+            else: st.info("Metadata Sumber tidak tersedia.")
 
-# ================= MENU 4: DATASET KORPUS (BARU) =================
-elif menu == "📂 Dataset Korpus":
-    st.title("📂 Eksplorasi Dataset")
-    st.markdown(f"Menampilkan seluruh **{len(df)} dokumen** yang tersimpan dalam sistem.")
+# --- PAGE 2: PENCARIAN ---
+elif menu == "Mesin Pencari":
+    st.markdown("<h2 style='color:#1e293b;'>🔍 Pencarian Berita Pendidikan</h2>", unsafe_allow_html=True)
     
-    # Pilihan Tampilan
-    view_option = st.radio("Pilih Tampilan:", ["Tabel Lengkap", "Perbandingan Raw vs Clean"], horizontal=True)
-    
-    if view_option == "Tabel Lengkap":
-        st.dataframe(df, use_container_width=True, height=600)
-    else:
-        # Tampilan Compare
-        doc_idx = st.number_input("Masukkan Index Dokumen (0 - {})".format(len(df)-1), min_value=0, max_value=len(df)-1, value=0)
+    # Search Box Design
+    with st.container():
+        st.markdown("<div style='margin-bottom: 10px;'>Masukkan kata kunci pencarian:</div>", unsafe_allow_html=True)
+        c_in, c_go = st.columns([5, 1])
+        with c_in:
+            query = st.text_input("Search", placeholder="Contoh: kurikulum merdeka, beasiswa...", label_visibility="collapsed")
+        with c_go:
+            do_search = st.button("TELUSURI")
+            
+    if query:
+        # Process
+        clean_q = preprocess_text(query, stemmer, stop_words)
         
+        # TF-IDF
+        s = time.time()
+        q_vec = vectorizer.transform([clean_q])
+        sc_tf = cosine_similarity(q_vec, tfidf_matrix).flatten()
+        idx_tf = sc_tf.argsort()[-10:][::-1]
+        t_tf = time.time() - s
+        
+        # BM25
+        s = time.time()
+        sc_bm = bm25.get_scores(clean_q.split())
+        idx_bm = np.argsort(sc_bm)[-10:][::-1]
+        t_bm = time.time() - s
+        
+        st.markdown(f"**Hasil untuk:** `{query}` (Processed: `{clean_q}`)")
+        
+        # Comparison Tabs
+        tab_a, tab_b = st.tabs([f"🔵 TF-IDF ({t_tf:.4f}s)", f"🟡 BM25 ({t_bm:.4f}s)"])
+        
+        def render_results(indices, scores, color_border):
+            found = False
+            for i in indices:
+                if scores[i] > 0.001:
+                    found = True
+                    row = df.iloc[i]
+                    hl_title = highlight_text(row['Title'], query)
+                    hl_snip = highlight_text(get_snippet(row['Content'], query), query)
+                    
+                    st.markdown(f"""
+                    <div class="result-box" style="border-left: 5px solid {color_border}">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div class="result-title"><a href="{row['URL']}" target="_blank">{hl_title}</a></div>
+                            <span class="result-score">Score: {scores[i]:.4f}</span>
+                        </div>
+                        <div class="result-meta">
+                            <span>📅 {row['Date']}</span> &nbsp;•&nbsp; <span>📰 {row['Source']}</span>
+                        </div>
+                        <div class="result-snippet">{hl_snip}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+            if not found: st.warning("Tidak ada dokumen yang relevan.")
+            
+        with tab_a: render_results(idx_tf, sc_tf, "#2563eb")
+        with tab_b: render_results(idx_bm, sc_bm, "#f59e0b")
+
+# --- PAGE 3: EVALUASI ---
+elif menu == "Evaluasi Kinerja":
+    st.markdown("<h2 style='color:#1e293b;'>⚙️ Evaluasi Kinerja (Relevance Feedback)</h2>", unsafe_allow_html=True)
+    
+    st.info("Karena dataset ini **unsupervised**, evaluasi dilakukan dengan metode **User Relevance Feedback**. Anda bertindak sebagai pakar yang menilai relevansi dokumen.")
+    
+    col_q, col_b = st.columns([3, 1])
+    with col_q:
+        q_eval = st.text_input("Query Uji", "pendidikan vokasi")
+    with col_b:
+        st.write("")
+        st.write("") # Spacer
+        btn_run = st.button("Mulai Evaluasi")
+        
+    if 'eval_session' not in st.session_state: st.session_state.eval_session = None
+    
+    if btn_run:
+        cln = preprocess_text(q_eval, stemmer, stop_words)
+        # Get Candidates
+        tf_sc = cosine_similarity(vectorizer.transform([cln]), tfidf_matrix).flatten()
+        idx_t = tf_sc.argsort()[-10:][::-1]
+        
+        bm_sc = bm25.get_scores(cln.split())
+        idx_b = np.argsort(bm_sc)[-10:][::-1]
+        
+        st.session_state.eval_session = {'tf': idx_t, 'bm': idx_b}
+        
+    if st.session_state.eval_session:
+        res = st.session_state.eval_session
+        
+        st.markdown("### 👉 Tandai Dokumen Relevan")
         c1, c2 = st.columns(2)
-        with c1:
-            st.info("📄 Dokumen Asli (Raw)")
-            st.text_area("Content", df.iloc[doc_idx]['Content'], height=400, disabled=True)
-        with c2:
-            st.success("✨ Hasil Stemming (Clean)")
-            st.text_area("Clean_Content", df.iloc[doc_idx]['Clean_Content'], height=400, disabled=True)
-
-# ================= MENU 5: EVALUASI LENGKAP =================
-elif menu == "Evaluasi Sistem":
-    st.title("⚙️ Evaluasi Kinerja (Metrics)")
-    
-    st.markdown("""
-    <div style="background-color:#e0f2fe; padding:15px; border-radius:8px; border-left:5px solid #0ea5e9; margin-bottom:20px;">
-        <strong>Metode Evaluasi: Relevance Feedback</strong><br>
-        Karena tidak ada <i>Ground Truth</i> (kunci jawaban) mutlak, sistem menggunakan penilaian manual pengguna.
-        Centang dokumen yang menurut Anda <b>RELEVAN</b> dengan query untuk menghitung skor.
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Input Query Evaluasi
-    col_ev, _ = st.columns([2,1])
-    with col_ev:
-        q_eval = st.text_input("Masukkan Query Evaluasi", value="pendidikan vokasi")
-        btn_eval = st.button("Tampilkan Dokumen untuk Dinilai")
-        
-    # State Management
-    if 'eval_data' not in st.session_state:
-        st.session_state.eval_data = None
-
-    if btn_eval:
-        clean_q = preprocess_text(q_eval, stemmer, stop_words)
-        
-        # Retrieve TF-IDF
-        v_vec = vectorizer.transform([clean_q])
-        s_tf = cosine_similarity(v_vec, tfidf_matrix).flatten()
-        idx_tf = s_tf.argsort()[-10:][::-1]
-        
-        # Retrieve BM25
-        s_bm = bm25.get_scores(clean_q.split())
-        idx_bm = np.argsort(s_bm)[-10:][::-1]
-        
-        st.session_state.eval_data = {'tfidf': idx_tf, 'bm25': idx_bm}
-
-    # Tampilan Checklist
-    if st.session_state.eval_data:
-        res = st.session_state.eval_data
-        
-        st.markdown("---")
-        st.write("Silakan centang dokumen yang **Relevan**:")
-        
-        col_t, col_b = st.columns(2)
-        
         sel_t, sel_b = [], []
         
-        with col_t:
-            st.subheader("Hasil TF-IDF")
-            for i, idx in enumerate(res['tfidf']):
-                if st.checkbox(f"{i+1}. {df.iloc[idx]['Title']}", key=f"tf_{i}"):
-                    sel_t.append(idx)
-                    
-        with col_b:
-            st.subheader("Hasil BM25")
-            for i, idx in enumerate(res['bm25']):
-                if st.checkbox(f"{i+1}. {df.iloc[idx]['Title']}", key=f"bm_{i}"):
-                    sel_b.append(idx)
+        with c1:
+            st.subheader("Kandidat TF-IDF")
+            for i, idx in enumerate(res['tf']):
+                if st.checkbox(f"{i+1}. {df.iloc[idx]['Title']}", key=f"t_{i}"): sel_t.append(idx)
+        with c2:
+            st.subheader("Kandidat BM25")
+            for i, idx in enumerate(res['bm']):
+                if st.checkbox(f"{i+1}. {df.iloc[idx]['Title']}", key=f"b_{i}"): sel_b.append(idx)
         
         st.markdown("---")
-        
-        if st.button("📊 HITUNG PRECISION, RECALL, F1, MAP"):
-            # Ground Truth = Gabungan unik dokumen relevan yang dipilih user
-            ground_truth = set(sel_t).union(set(sel_b))
+        if st.button("📊 HITUNG METRIK EVALUASI"):
+            truth = set(sel_t).union(set(sel_b))
+            if not truth: st.error("Harap pilih minimal 1 dokumen yang relevan!"); st.stop()
             
-            if not ground_truth:
-                st.error("Pilih minimal 1 dokumen yang relevan!")
-            else:
-                # Helper Hitung Metrik
-                def calc_metrics(retrieved, truth):
-                    ret_set = set(retrieved)
-                    tp = len(ret_set.intersection(truth))
-                    
-                    precision = tp / len(retrieved)
-                    recall = tp / len(truth)
-                    f1 = (2 * precision * recall) / (precision + recall) if (precision+recall) > 0 else 0
-                    
-                    # MAP Calculation
-                    hits = 0
-                    sum_p = 0
-                    for i, idx in enumerate(retrieved):
-                        if idx in truth:
-                            hits += 1
-                            sum_p += hits / (i+1)
-                    ap = sum_p / len(truth) if truth else 0
-                    
-                    return precision, recall, f1, ap
+            # 1. Calculation Logic
+            def calculate_detailed(retrieved, relevant):
+                ret_set = set(retrieved)
+                tp = len(ret_set.intersection(relevant))
+                fp = len(retrieved) - tp
+                
+                prec = tp / len(retrieved) if retrieved.size > 0 else 0
+                rec = tp / len(relevant) if len(relevant) > 0 else 0
+                f1 = (2 * prec * rec) / (prec + rec) if (prec + rec) > 0 else 0
+                
+                # MAP
+                hits = 0
+                sum_p = 0
+                for i, x in enumerate(retrieved):
+                    if x in relevant:
+                        hits += 1
+                        sum_p += hits / (i + 1)
+                ap = sum_p / len(relevant) if len(relevant) > 0 else 0
+                
+                return prec, rec, f1, ap, tp, fp
 
-                p1, r1, f1_1, map1 = calc_metrics(res['tfidf'], ground_truth)
-                p2, r2, f1_2, map2 = calc_metrics(res['bm25'], ground_truth)
-                
-                # Tampilkan Hasil dalam Tabel Cantik
-                st.success("Perhitungan Selesai!")
-                
-                score_data = {
-                    "Metrik": ["Precision@10", "Recall", "F1-Score", "MAP (Mean Avg Precision)"],
-                    "TF-IDF": [f"{p1:.4f}", f"{r1:.4f}", f"{f1_1:.4f}", f"{map1:.4f}"],
-                    "BM25": [f"{p2:.4f}", f"{r2:.4f}", f"{f1_2:.4f}", f"{map2:.4f}"]
-                }
-                
-                st.table(pd.DataFrame(score_data).set_index("Metrik"))
-                
-                # Rumus Penjelasan
-                with st.expander("📚 Penjelasan Rumus Metrik"):
-                    st.latex(r"Precision = \frac{|Relevant \cap Retrieved|}{|Retrieved|}")
-                    st.latex(r"Recall = \frac{|Relevant \cap Retrieved|}{|Total Relevant|}")
-                    st.latex(r"F1 = 2 \cdot \frac{Precision \cdot Recall}{Precision + Recall}")
-                    st.latex(r"MAP = \frac{1}{|Q|} \sum_{q \in Q} AveragePrecision(q)")
+            p1, r1, f11, map1, tp1, fp1 = calculate_detailed(res['tf'], truth)
+            p2, r2, f12, map2, tp2, fp2 = calculate_detailed(res['bm'], truth)
+            
+            # 2. Display Result Table
+            st.success("Perhitungan Selesai!")
+            
+            res_df = pd.DataFrame({
+                "Metric": ["Precision@10", "Recall", "F1-Score", "MAP"],
+                "TF-IDF": [p1, r1, f11, map1],
+                "BM25": [p2, r2, f12, map2]
+            }).set_index("Metric")
+            
+            st.table(res_df.style.format("{:.4f}").background_gradient(cmap="Blues", axis=1))
+            
+            # 3. Chart Perbandingan
+            st.subheader("Grafik Perbandingan Algoritma")
+            df_melt = res_df.reset_index().melt(id_vars="Metric", var_name="Algoritma", value_name="Skor")
+            fig, ax = plt.subplots(figsize=(8, 4))
+            sns.barplot(data=df_melt, x="Metric", y="Skor", hue="Algoritma", palette="viridis", ax=ax)
+            ax.set_ylim(0, 1.1); ax.legend(loc='upper right')
+            st.pyplot(fig)
+
+            # 4. Detail Perhitungan (Rumus)
+            st.markdown("### 📝 Rincian Perhitungan Manual")
+            st.info("Berikut adalah detail perhitungan berdasarkan dokumen yang Anda tandai sebagai relevan.")
+            
+            tab_tf, tab_bm = st.tabs(["📘 Detail TF-IDF", "📙 Detail BM25"])
+            
+            total_rel = len(truth)
+            
+            with tab_tf:
+                st.markdown(f"**Data:** Diambil 10 dokumen. Relevan (TP) = {tp1}. Total Ground Truth = {total_rel}")
+                st.latex(rf"Precision = \frac{{TP}}{{Retrieved}} = \frac{{{tp1}}}{{10}} = {p1:.4f}")
+                st.latex(rf"Recall = \frac{{TP}}{{Total Relevan}} = \frac{{{tp1}}}{{{total_rel}}} = {r1:.4f}")
+                st.latex(rf"F1 = 2 \times \frac{{Precision \times Recall}}{{Precision + Recall}} = {f11:.4f}")
+                st.latex(rf"MAP = \frac{{\sum P@k}}{{Total Relevan}} = {map1:.4f}")
+
+            with tab_bm:
+                st.markdown(f"**Data:** Diambil 10 dokumen. Relevan (TP) = {tp2}. Total Ground Truth = {total_rel}")
+                st.latex(rf"Precision = \frac{{TP}}{{Retrieved}} = \frac{{{tp2}}}{{10}} = {p2:.4f}")
+                st.latex(rf"Recall = \frac{{TP}}{{Total Relevan}} = \frac{{{tp2}}}{{{total_rel}}} = {r2:.4f}")
+                st.latex(rf"F1 = 2 \times \frac{{Precision \times Recall}}{{Precision + Recall}} = {f12:.4f}")
+                st.latex(rf"MAP = \frac{{\sum P@k}}{{Total Relevan}} = {map2:.4f}")
+
+# --- PAGE 4: DATASET ---
+elif menu == "Dataset":
+    st.markdown("<h2 style='color:#1e293b;'>📂 Eksplorasi Dataset</h2>", unsafe_allow_html=True)
+    
+    view_mode = st.radio("Pilih Tampilan:", ["Tabel Data Lengkap", "Perbandingan Raw vs Clean"], horizontal=True)
+    
+    if view_mode == "Tabel Data Lengkap":
+        st.dataframe(df, use_container_width=True, height=1000)
+    else:
+        idx = st.number_input("Pilih Index Dokumen", 0, len(df)-1, 0)
+        c1, c2 = st.columns(2)
+        with c1: 
+            st.info("📄 Dokumen Asli (Raw)")
+            st.text_area("Content", df.iloc[idx]['Content'], height=400, disabled=True)
+        with c2: 
+            st.success("✨ Hasil Stemming (Clean)")
+            st.text_area("Clean", df.iloc[idx]['Clean_Content'], height=400, disabled=True)
