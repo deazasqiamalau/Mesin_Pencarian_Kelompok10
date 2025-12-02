@@ -633,7 +633,8 @@ if not st.session_state.app_started:
     with col_team1:
         st.markdown("""
         <div class="team-member">
-            <img src="dea.jpg" class="team-photo" onerror="this.src='https://via.placeholder.com/180/667eea/ffffff?text=DEA'">
+            <img src="foto/dea.jpg" class="team-photo"
+                onerror="this.src='https://via.placeholder.com/180/667eea/ffffff?text=DEA'">
             <div class="team-name">Dea Zasqia Pasaribu Malau</div>
             <div class="team-role">2308107010004</div>
         </div>
@@ -642,7 +643,8 @@ if not st.session_state.app_started:
     with col_team2:
         st.markdown("""
         <div class="team-member">
-            <img src="tasya.jpg" class="team-photo" onerror="this.src='https://via.placeholder.com/180/764ba2/ffffff?text=TASYA'">
+            <img src="foto/tasya.jpg" class="team-photo"
+                onerror="this.src='https://via.placeholder.com/180/764ba2/ffffff?text=TASYA'">
             <div class="team-name">Tasya Zahrani</div>
             <div class="team-role">2308107010006</div>
         </div>
@@ -651,7 +653,8 @@ if not st.session_state.app_started:
     with col_team3:
         st.markdown("""
         <div class="team-member">
-            <img src="dinda.jpg" class="team-photo" onerror="this.src='https://via.placeholder.com/180/667eea/ffffff?text=DIAN'">
+            <img src="foto/dinda.jpg" class="team-photo"
+                onerror="this.src='https://via.placeholder.com/180/667eea/ffffff?text=DIAN'">
             <div class="team-name">Adinda Muarriva</div>
             <div class="team-role">2308107010001</div>
         </div>
