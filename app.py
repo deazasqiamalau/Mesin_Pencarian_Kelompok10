@@ -714,6 +714,41 @@ with st.spinner("🚀 Memuat Data & AI Engine..."):
 # =========================
 
 with st.sidebar:
+    # CSS untuk hilangkan sidebar nav
+    st.markdown("""
+    <style>
+    [data-testid="stSidebarNav"] {
+        display: none !important;
+    }
+    section[data-testid="stSidebar"] > div:first-child {
+        padding-top: 1rem !important;
+    }
+    
+    /* Style untuk menu custom */
+    .menu-item {
+        background: rgba(255,255,255,0.05);
+        padding: 12px 20px;
+        margin: 8px 0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #94a3b8;
+        font-size: 15px;
+    }
+    .menu-item:hover {
+        background: rgba(102, 126, 234, 0.2);
+        color: white;
+    }
+    .menu-item.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-weight: 600;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
     st.markdown("""
     <div style='text-align:center; margin-top:-10px;'>
@@ -728,49 +763,79 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    menu = st.radio(
-        "___",
-        ["🏠 Dashboard", "🔍 Mesin Pencari", "⚙️ Evaluasi Kinerja", "📂 Dataset Korpus", "ℹ️ Tentang"],
-        label_visibility="collapsed"
-    )
+    # Initialize menu state
+    if 'menu' not in st.session_state:
+        st.session_state.menu = "🏠 Dashboard"
+    
+    # Menu buttons
+    if st.button("🏠 Dashboard", key="dash", use_container_width=True):
+        st.session_state.menu = "🏠 Dashboard"
+    
+    if st.button("🔍 Mesin Pencari", key="search", use_container_width=True):
+        st.session_state.menu = "🔍 Mesin Pencari"
+    
+    if st.button("⚙️ Evaluasi Kinerja", key="eval", use_container_width=True):
+        st.session_state.menu = "⚙️ Evaluasi Kinerja"
+    
+    if st.button("📂 Dataset Korpus", key="data", use_container_width=True):
+        st.session_state.menu = "📂 Dataset Korpus"
+    
+    if st.button("ℹ️ Tentang", key="about", use_container_width=True):
+        st.session_state.menu = "ℹ️ Tentang"
+    
+    menu = st.session_state.menu
 
-    st.markdown("<hr style='border-color:#334155; margin-top:25px;'>", unsafe_allow_html=True)
-
-    st.markdown("""
-        <p style="color:#475569; font-size:12px; text-align:center;">
-            © 2025 Kelompok 10<br>Teknologi Pencarian Informasi
-        </p>
-    """, unsafe_allow_html=True)
+    st.markdown("<hr style='border-color:#334155; margin-top:25px; margin-bottom:25px;'>", unsafe_allow_html=True)
 
     # Statistics
     st.markdown(f"""
-    <div class="sidebar-stat">
-        <div style='font-size:11px; color:#a0aec0; margin-bottom:4px;'>TOTAL DOKUMEN</div>
-        <div style='font-size:22px; font-weight:700;'>📄 {len(df):,}</div>
+    <div style='background:rgba(99,102,241,0.1); padding:15px; border-radius:10px; margin-bottom:15px;'>
+        <div style='font-size:11px; color:#a0aec0; margin-bottom:6px; letter-spacing:0.5px;'>TOTAL DOKUMEN</div>
+        <div style='font-size:24px; font-weight:700; color:#667eea;'>📄 {len(df):,}</div>
     </div>
     """, unsafe_allow_html=True)
     
     if 'Source' in df.columns:
         st.markdown(f"""
-        <div class="sidebar-stat">
-            <div style='font-size:11px; color:#a0aec0; margin-bottom:4px;'>SUMBER MEDIA</div>
-            <div style='font-size:22px; font-weight:700;'>🏢 {df['Source'].nunique()}</div>
+        <div style='background:rgba(99,102,241,0.1); padding:15px; border-radius:10px; margin-bottom:20px;'>
+            <div style='font-size:11px; color:#a0aec0; margin-bottom:6px; letter-spacing:0.5px;'>SUMBER MEDIA</div>
+            <div style='font-size:24px; font-weight:700; color:#667eea;'>🏢 {df['Source'].nunique()}</div>
         </div>
         """, unsafe_allow_html=True)
-    
-    st.markdown("<div style='margin:25px 0;'></div>", unsafe_allow_html=True)
-    
+        
     # Back to Home Button
-    if st.button("🏠 Kembali ke Beranda", use_container_width=True):
+    st.markdown("""
+    <style>
+    div[data-testid="stButton"] > button {
+        width: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    div[data-testid="stButton"] > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
+    if st.button("🏠 Kembali ke Beranda"):
         st.session_state.app_started = False
         st.rerun()
     
     # Footer
     st.markdown("""
-    <div style='position:fixed; bottom:20px; left:20px; right:20px; text-align:center; 
-                font-size:11px; color:#64748b; padding-top:15px; border-top:1px solid rgba(255,255,255,0.1);'>
+    <div style='margin-top: 40px; text-align:center; 
+                font-size:11px; color:#64748b; padding-top:20px; 
+                border-top:1px solid rgba(255,255,255,0.1);'>
         © 2025 Kelompok 10<br>
-        <span style='color:#667eea;'>Teknologi Pencarian Informasi</span>
+        <span style='color:#667eea; font-weight:600;'>Teknologi Pencarian Informasi</span>
     </div>
     """, unsafe_allow_html=True)
 
