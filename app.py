@@ -5,6 +5,7 @@ import csv
 import re
 import time
 import os
+import base64
 import matplotlib.pyplot as plt
 import seaborn as sns
 from collections import Counter
@@ -24,7 +25,7 @@ st.set_page_config(
     page_title="EduNews Search - Mesin Pencari Vertikal Berita Pendidikan",
     page_icon="🎓",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
 
 # Download Resource NLTK (Silent Mode)
@@ -61,7 +62,7 @@ st.markdown("""
         font-size: 56px;
         font-weight: 800;
         color: white;
-        margin-bottom: 20px;
+        margin-bottom: 10px;
         font-family: 'Poppins', sans-serif;
         line-height: 1.2;
     }
@@ -78,63 +79,45 @@ st.markdown("""
     
     /* TEAM SECTION */
     .team-section {
-        margin: 50px 0;
+        margin: 30px 0 20px 0;
         padding: 40px;
         background: white;
         border-radius: 20px;
         box-shadow: 0 10px 40px rgba(0,0,0,0.08);
     }
-    
+
     .team-title {
         text-align: center;
         font-size: 32px;
         font-weight: 700;
         color: #1e293b;
-        margin-bottom: 40px;
+        margin-bottom: 2px;
         font-family: 'Poppins', sans-serif;
     }
-    
-    .team-member {
-        text-align: center;
-        padding: 30px 20px;
-        transition: transform 0.3s;
+
+    /* Style untuk gambar tim yang di-embed base64 */
+    .team-section img {
+        display: block;
+        margin: 0 auto 20px auto;
     }
-    
-    .team-member:hover {
-        transform: translateY(-10px);
-    }
-    
-    .team-photo {
-        width: 180px;
-        height: 180px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 5px solid #667eea;
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-        margin-bottom: 20px;
-        transition: all 0.3s;
-    }
-    
-    .team-member:hover .team-photo {
-        border-color: #764ba2;
-        box-shadow: 0 15px 40px rgba(118, 75, 162, 0.4);
-        transform: scale(1.05);
-    }
-    
+
     .team-name {
         font-size: 20px;
         font-weight: 700;
         color: #1e293b;
+        margin-top: 15px;
         margin-bottom: 8px;
         font-family: 'Poppins', sans-serif;
+        text-align: center;
     }
-    
+
     .team-role {
         font-size: 14px;
         color: #667eea;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 1px;
+        text-align: center;
     }
     
     .feature-card {
@@ -622,43 +605,62 @@ if not st.session_state.app_started:
     st.markdown("<br><br>", unsafe_allow_html=True)
     
     # Team Section
+    def load_base64(path):
+        with open(path, "rb") as img:
+            return base64.b64encode(img.read()).decode()
+
+    # convert gambar
+    img_dea = load_base64("foto/dea.jpg")
+    img_tasya = load_base64("foto/tasya.jpg")
+    img_dinda = load_base64("foto/dinda.jpg")
+
+    # wrapper foto
+    image_wrapper = """
+    <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+        <img src="data:image/jpeg;base64,{img}" 
+            style="width: 250px; height: 250px; border-radius: 50%; object-fit: cover;
+            border: 6px solid #667eea; box-shadow: 0 12px 35px rgba(102, 126, 234, 0.35);" />
+    </div>
+    """
+    
     st.markdown("""
     <div class="team-section">
         <div class="team-title">👥 Tim Pengembang</div>
     </div>
     """, unsafe_allow_html=True)
-    
-    col_team1, col_team2, col_team3 = st.columns(3)
-    
-    with col_team1:
+
+    col1, col2, col3 = st.columns(3)
+
+    # TEAM 1
+    with col1:
+        st.markdown(image_wrapper.format(img=img_dea), unsafe_allow_html=True)
         st.markdown("""
-        <div class="team-member">
-            <img src="foto/dea.jpg" class="team-photo"
-                onerror="this.src='https://via.placeholder.com/180/667eea/ffffff?text=DEA'">
-            <div class="team-name">Dea Zasqia Pasaribu Malau</div>
-            <div class="team-role">2308107010004</div>
-        </div>
+            <div style="text-align: center;">
+                <div class="team-name">Dea Zasqia Pasaribu Malau</div>
+                <div class="team-role">2308107010004</div>
+            </div>
         """, unsafe_allow_html=True)
-    
-    with col_team2:
+
+    # TEAM 2
+    with col2:
+        st.markdown(image_wrapper.format(img=img_tasya), unsafe_allow_html=True)
         st.markdown("""
-        <div class="team-member">
-            <img src="foto/tasya.jpg" class="team-photo"
-                onerror="this.src='https://via.placeholder.com/180/764ba2/ffffff?text=TASYA'">
-            <div class="team-name">Tasya Zahrani</div>
-            <div class="team-role">2308107010006</div>
-        </div>
+            <div style="text-align: center;">
+                <div class="team-name">Tasya Zahrani</div>
+                <div class="team-role">2308107010006</div>
+            </div>
         """, unsafe_allow_html=True)
-    
-    with col_team3:
+
+    # TEAM 3
+    with col3:
+        st.markdown(image_wrapper.format(img=img_dinda), unsafe_allow_html=True)
         st.markdown("""
-        <div class="team-member">
-            <img src="foto/dinda.jpg" class="team-photo"
-                onerror="this.src='https://via.placeholder.com/180/667eea/ffffff?text=DIAN'">
-            <div class="team-name">Adinda Muarriva</div>
-            <div class="team-role">2308107010001</div>
-        </div>
+            <div style="text-align: center;">
+                <div class="team-name">Adinda Muarriva</div>
+                <div class="team-role">2308107010001</div>
+            </div>
         """, unsafe_allow_html=True)
+
     
     st.markdown("<br><br>", unsafe_allow_html=True)
     
@@ -668,20 +670,34 @@ if not st.session_state.app_started:
         if st.button("🚀 MULAI PENCARIAN", use_container_width=True, type="primary"):
             st.session_state.app_started = True
             st.rerun()
-    
+
     st.markdown("<br>", unsafe_allow_html=True)
-    
+
     # Stats Preview
     with st.spinner("📥 Memuat preview data..."):
         df_preview, _ = load_dataset()
         if not df_preview.empty:
-            st.markdown(f"""
-            <div class="stats-bar">
-                <b>📈 Preview Dataset:</b> {len(df_preview)} Dokumen Siap Dianalisis | 
-                <b>🏢 Sumber:</b> {df_preview['Source'].nunique() if 'Source' in df_preview.columns else 'N/A'} Media | 
-                <b>🗓️</b> Data Terkini
-            </div>
-            """, unsafe_allow_html=True)
+
+            st.markdown(
+                f"""
+                <div style="display:flex; justify-content:center; margin-top: 10px;">
+                    <div style="
+                        padding: 18px 28px;
+                        background: linear-gradient(to bottom right, #ffffff, #eef3f9);
+                        border-radius: 15px;
+                        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+                        text-align: center;
+                        font-size: 17px;
+                        max-width: 520px;
+                    ">
+                        <b>📈 Preview Dataset:</b> {len(df_preview)} Dokumen Siap Dianalisis |
+                        <b>🏢 Sumber:</b> {df_preview['Source'].nunique() if 'Source' in df_preview.columns else 'N/A'} Media |
+                        <b>🗓️</b> Data Terkini
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
     
     # Footer
     st.markdown("<br><br>", unsafe_allow_html=True)
