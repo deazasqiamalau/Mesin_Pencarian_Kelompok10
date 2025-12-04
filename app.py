@@ -1053,245 +1053,707 @@ elif menu == "🔍 Mesin Pencari":
 
 # --- PAGE 3: EVALUASI ---
 elif menu == "⚙️ Evaluasi Kinerja":
-    st.markdown("<h2 style='margin-bottom:10px;'>⚙️ Evaluasi Kinerja (Matrix & Metrics)</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='margin-bottom:10px;'>⚙️ Evaluasi Kinerja Sistem Pencarian</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#64748b; margin-bottom:25px;'>Evaluasi menggunakan Confusion Matrix, Precision, Recall, F1-Score dan analisis Trade-off</p>", unsafe_allow_html=True)
     
-    st.info("ℹ️ Karena dataset ini unsupervised, Anda sebagai pengguna berperan memberi penandaan dokumen relevan (Ground Truth).")
+    # INFO BOX
+    st.info("""
+    ℹ️ **Cara Kerja Evaluasi:**
+    1. Masukkan query untuk diuji
+    2. Sistem akan menampilkan Top-10 hasil dari TF-IDF dan BM25
+    3. Anda (sebagai assessor) menandai dokumen mana yang relevan
+    4. Sistem menghitung metrik evaluasi berdasarkan pilihan Anda
+    """)
     
-    # Input Query
+    # ==========================================
+    # INPUT QUERY & SEARCH
+    # ==========================================
+    st.markdown("### 🔍 Langkah 1: Masukkan Query Evaluasi")
+    
     col_q, col_b = st.columns([3, 1])
     with col_q:
-        q_eval = st.text_input("Query Uji")
+        q_eval = st.text_input(
+            "Query untuk Evaluasi", 
+            placeholder="Contoh: kurikulum merdeka",
+            help="Masukkan topik berita pendidikan yang ingin dievaluasi"
+        )
     with col_b:
         st.write("")
         st.write("")
-        btn_run = st.button("Mulai Evaluasi")
+        btn_run = st.button("Mulai Evaluasi", use_container_width=True, type="primary")
     
-    # Session state
+    # Session state untuk menyimpan hasil pencarian
     if 'eval_session' not in st.session_state:
         st.session_state.eval_session = None
+    if 'ground_truth_confirmed' not in st.session_state:
+        st.session_state.ground_truth_confirmed = False
 
-    # Jalankan Sistem Pencari untuk Top-10
-    if btn_run:
+    # ==========================================
+    # EKSEKUSI PENCARIAN
+    # ==========================================
+    if btn_run and q_eval:
+        # Validasi query
+        if not q_eval.strip():
+            st.warning("⚠️ Query tidak boleh kosong!")
+            st.stop()
+        
+        # Preprocessing
         cln = preprocess_text(q_eval, stemmer, stop_words)
         
-        # TF-IDF ranking
-        q_vec_tfidf = vectorizer.transform([cln])
-        scores_tfidf = cosine_similarity(q_vec_tfidf, tfidf_matrix).flatten()
-        idx_t = scores_tfidf.argsort()[-10:][::-1]
-        top_scores_tfidf = scores_tfidf[idx_t]
+        if not cln:
+            st.error("❌ Query terlalu pendek atau hanya berisi stopwords! Gunakan kata kunci yang lebih spesifik.")
+            st.stop()
         
-        # BM25 ranking
-        scores_bm25 = bm25.get_scores(cln.split())
-        idx_b = np.argsort(scores_bm25)[-10:][::-1]
-        top_scores_bm25 = scores_bm25[idx_b]
+        # Info Query
+        st.markdown(f"""
+        <div style='background:#f0f9ff; padding:15px; border-radius:10px; border-left:4px solid #3b82f6; margin:20px 0;'>
+            <b>🔎 Query Asli:</b> <span style='color:#1e40af;'>{q_eval}</span><br>
+            <b>✨ Setelah Preprocessing:</b> <code style='background:#dbeafe; padding:3px 8px; border-radius:5px;'>{cln}</code>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Simpan sesi
+        with st.spinner("⏳ Memproses pencarian dengan TF-IDF dan BM25..."):
+            # TF-IDF Search
+            q_vec_tfidf = vectorizer.transform([cln])
+            scores_tfidf = cosine_similarity(q_vec_tfidf, tfidf_matrix).flatten()
+            
+            # Ambil top-10 dengan threshold minimum
+            MIN_SCORE = 0.001
+            valid_tfidf = np.where(scores_tfidf > MIN_SCORE)[0]
+            
+            if len(valid_tfidf) == 0:
+                st.error("❌ TF-IDF tidak menemukan dokumen relevan untuk query ini!")
+                st.stop()
+            
+            idx_tfidf = valid_tfidf[scores_tfidf[valid_tfidf].argsort()[-10:][::-1]]
+            top_scores_tfidf = scores_tfidf[idx_tfidf]
+            
+            # BM25 Search
+            scores_bm25 = bm25.get_scores(cln.split())
+            valid_bm25 = np.where(scores_bm25 > MIN_SCORE)[0]
+            
+            if len(valid_bm25) == 0:
+                st.error("❌ BM25 tidak menemukan dokumen relevan untuk query ini!")
+                st.stop()
+            
+            idx_bm25 = valid_bm25[scores_bm25[valid_bm25].argsort()[-10:][::-1]]
+            top_scores_bm25 = scores_bm25[idx_bm25]
+        
+        # Simpan ke session state
         st.session_state.eval_session = {
-            'tf': idx_t, 
-            'bm': idx_b,
+            'query': q_eval,
+            'clean_query': cln,
+            'idx_tfidf': idx_tfidf,
+            'idx_bm25': idx_bm25,
             'scores_tfidf': top_scores_tfidf,
             'scores_bm25': top_scores_bm25
         }
-    
-    # Jika sesi ranking ada
+        st.session_state.ground_truth_confirmed = False
+        
+        st.success("✅ Pencarian selesai! Scroll ke bawah untuk melihat hasil.")
+
+    # ==========================================
+    # TAMPILKAN HASIL JIKA ADA SESSION
+    # ==========================================
     if st.session_state.eval_session:
         res = st.session_state.eval_session
         
-        # BAR CHART PERBANDINGAN
-        st.markdown("### 📊 Perbandingan Skor TF-IDF vs BM25 (Top 10 Dokumen)")
+        st.markdown("---")
         
-        # Siapkan data untuk plotting
-        ranks = list(range(1, 11))
+        # ==========================================
+        # VISUALISASI SKOR
+        # ==========================================
+        st.markdown("### 📊 Langkah 2: Perbandingan Skor Ranking")
         
-        # Buat figure dengan 2 subplot
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+        fig_scores, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
         
-        # Bar Chart TF-IDF
-        colors_tfidf = plt.cm.Blues(np.linspace(0.4, 0.8, 10))
-        bars1 = ax1.barh(ranks, res['scores_tfidf'][::-1], color=colors_tfidf, edgecolor='navy', linewidth=1.5)
-        ax1.set_xlabel('Score TF-IDF', fontsize=13, fontweight='bold')
+        ranks = list(range(1, len(res['scores_tfidf']) + 1))
+        
+        # Chart TF-IDF
+        colors_tfidf = plt.cm.Blues(np.linspace(0.4, 0.9, len(res['scores_tfidf'])))
+        bars1 = ax1.barh(ranks, res['scores_tfidf'][::-1], color=colors_tfidf, 
+                         edgecolor='navy', linewidth=1.5)
+        ax1.set_xlabel('Cosine Similarity Score', fontsize=13, fontweight='bold')
         ax1.set_ylabel('Rank', fontsize=13, fontweight='bold')
-        ax1.set_title('🔵 Top 10 Dokumen - TF-IDF', fontsize=15, fontweight='bold', pad=20)
+        ax1.set_title('🔵 TF-IDF Ranking', fontsize=16, fontweight='bold', pad=20)
         ax1.set_yticks(ranks)
         ax1.set_yticklabels([f'#{i}' for i in reversed(ranks)], fontsize=11)
         ax1.invert_yaxis()
         ax1.grid(axis='x', alpha=0.3, linestyle='--')
         
-        # Tambahkan nilai di ujung bar dengan ukuran lebih besar
-        for i, (bar, score) in enumerate(zip(bars1, res['scores_tfidf'][::-1])):
-            ax1.text(score + 0.001, bar.get_y() + bar.get_height()/2, 
-                    f'{score:.4f}', va='center', fontsize=12, fontweight='bold')
+        for bar, score in zip(bars1, res['scores_tfidf'][::-1]):
+            ax1.text(score + 0.002, bar.get_y() + bar.get_height()/2, 
+                    f'{score:.4f}', va='center', fontsize=11, fontweight='bold')
         
-        # Bar Chart BM25
-        colors_bm25 = plt.cm.YlOrRd(np.linspace(0.4, 0.8, 10))
-        bars2 = ax2.barh(ranks, res['scores_bm25'][::-1], color=colors_bm25, edgecolor='darkred', linewidth=1.5)
-        ax2.set_xlabel('Score BM25', fontsize=13, fontweight='bold')
+        # Chart BM25
+        colors_bm25 = plt.cm.YlOrRd(np.linspace(0.4, 0.9, len(res['scores_bm25'])))
+        bars2 = ax2.barh(ranks, res['scores_bm25'][::-1], color=colors_bm25, 
+                         edgecolor='darkred', linewidth=1.5)
+        ax2.set_xlabel('BM25 Score', fontsize=13, fontweight='bold')
         ax2.set_ylabel('Rank', fontsize=13, fontweight='bold')
-        ax2.set_title('🟡 Top 10 Dokumen - BM25', fontsize=15, fontweight='bold', pad=20)
+        ax2.set_title('🟡 BM25 Ranking', fontsize=16, fontweight='bold', pad=20)
         ax2.set_yticks(ranks)
         ax2.set_yticklabels([f'#{i}' for i in reversed(ranks)], fontsize=11)
         ax2.invert_yaxis()
         ax2.grid(axis='x', alpha=0.3, linestyle='--')
         
-        # Tambahkan nilai di ujung bar dengan ukuran lebih besar
-        for i, (bar, score) in enumerate(zip(bars2, res['scores_bm25'][::-1])):
-            ax2.text(score + 0.1, bar.get_y() + bar.get_height()/2, 
-                    f'{score:.2f}', va='center', fontsize=12, fontweight='bold')
+        for bar, score in zip(bars2, res['scores_bm25'][::-1]):
+            ax2.text(score + 0.5, bar.get_y() + bar.get_height()/2, 
+                    f'{score:.2f}', va='center', fontsize=11, fontweight='bold')
         
         plt.tight_layout()
-        st.pyplot(fig)
+        st.pyplot(fig_scores)
         
         st.markdown("---")
         
-        # TANDAI DOKUMEN RELEVAN
-        st.markdown("### 👉 Tandai Dokumen Relevan")
-        col_tf, col_bm = st.columns(2)
-        sel_t, sel_b = [], []
+        # ==========================================
+        # GROUND TRUTH SELECTION
+        # ==========================================
+        st.markdown("### 👤 Langkah 3: Manual Annotation (Relevance Judgment)")
+        st.markdown("""
+        <div style='background:#fff7ed; padding:15px; border-radius:10px; border-left:4px solid #f59e0b; margin-bottom:20px;'>
+            <b>📋 Instruksi:</b> Baca judul dokumen di bawah ini dan centang dokumen yang <b>RELEVAN</b> dengan query <code>{}</code>
+        </div>
+        """.format(res['query']), unsafe_allow_html=True)
         
-        with col_tf:
-            st.subheader("Kandidat TF-IDF")
-            for i, idx in enumerate(res['tf']):
-                if st.checkbox(f"{i+1}. {df.iloc[idx]['Title']}", key=f"t_{i}"):
-                    sel_t.append(idx)
-
-        with col_bm:
-            st.subheader("Kandidat BM25")
-            for i, idx in enumerate(res['bm']):
-                if st.checkbox(f"{i+1}. {df.iloc[idx]['Title']}", key=f"b_{i}"):
-                    sel_b.append(idx)
+        col_tfidf, col_bm25 = st.columns(2)
         
-        st.markdown("---")
+        selected_tfidf = []
+        selected_bm25 = []
         
-        # Tombol Hitung Evaluasi
-        if st.button("🧮 HITUNG MATRIX EVALUASI"):
+        with col_tfidf:
+            st.markdown("#### 🔵 Kandidat dari TF-IDF")
+            st.caption("Centang dokumen yang relevan:")
+            
+            for rank, idx in enumerate(res['idx_tfidf'], 1):
+                doc = df.iloc[idx]
+                score = res['scores_tfidf'][rank-1]
 
-            truth = set(sel_t).union(set(sel_b))
-            if not truth:
-                st.error("Harap pilih minimal 1 dokumen yang relevan!")
-                st.stop()
-
-            # Fungsi evaluasi
-            def get_stats(retrieved, relevant):
-                ret_set = set(retrieved)
-                tp = len(ret_set.intersection(relevant))
-                fp = len(retrieved) - tp
-
-                prec = tp / len(retrieved) if len(retrieved) > 0 else 0
-                rec = tp / len(relevant) if len(relevant) > 0 else 0
-                f1 = (2 * prec * rec) / (prec + rec) if (prec + rec) > 0 else 0
-
-                # Hitung MAP/AP
-                hits, sum_p = 0, 0
-                for i, x in enumerate(retrieved):
-                    if x in relevant:
-                        hits += 1
-                        sum_p += hits / (i + 1)
-                ap = sum_p / len(relevant) if len(relevant) > 0 else 0
-
-                return tp, fp, prec, rec, f1, ap
-
-            # Hitung evaluasi TF-IDF & BM25
-            tp1, fp1, p1, r1, f11, map1 = get_stats(res['tf'], truth)
-            tp2, fp2, p2, r2, f12, map2 = get_stats(res['bm'], truth)
-
-            # HEATMAP MATRIX
-            st.subheader("🔥 Retrieval Performance Matrix")
-            col_mat, col_tab = st.columns([1, 1])
-
-            with col_mat:
-                matrix_data = pd.DataFrame({
-                    'TF-IDF': [tp1, fp1],
-                    'BM25': [tp2, fp2]
-                }, index=['Relevan (TP)', 'Irrelevan (FP)'])
-
-                fig_heat, ax_heat = plt.subplots(figsize=(6, 4))
-                sns.heatmap(matrix_data, annot=True, fmt='d',
-                            cmap='Blues', linewidths=1,
-                            ax=ax_heat, annot_kws={"size": 16, "weight": "bold"})
-                ax_heat.set_title("Confusion Matrix (Top-10 Results)", fontsize=14, fontweight='bold')
-                st.pyplot(fig_heat)
-
-            # TABEL METRIK
-            with col_tab:
-                eval_df = pd.DataFrame({
-                    "Metric": ["Precision", "Recall", "F1-Score", "MAP"],
-                    "TF-IDF": [p1, r1, f11, map1],
-                    "BM25": [p2, r2, f12, map2]
-                }).set_index("Metric")
-
-                st.table(
-                    eval_df.style
-                        .format("{:.4f}")
-                        .background_gradient(cmap="Greens", axis=1)
+                is_checked = st.checkbox(
+                    f"**Rank #{rank}** — Score: {score:.4f}",
+                    key=f"tfidf_{idx}"
                 )
 
-            st.markdown("---")
+                # Tampilkan judul saja
+                st.markdown(f"📄 *{doc['Title']}*")
 
-            # BAR CHART PERBANDINGAN METRIK
-            st.subheader("📊 Perbandingan Metrik Evaluasi")
+                if is_checked:
+                    selected_tfidf.append(idx)
+
+                st.markdown("")  # spasi kecil
+                
+        with col_bm25:
+            st.markdown("#### 🟡 Kandidat dari BM25")
+            st.caption("Centang dokumen yang relevan:")
             
-            # Siapkan data untuk bar chart
-            metrics = ['Precision', 'Recall', 'F1-Score', 'MAP']
-            tfidf_scores = [p1, r1, f11, map1]
-            bm25_scores = [p2, r2, f12, map2]
+            for rank, idx in enumerate(res['idx_bm25'], 1):
+                doc = df.iloc[idx]
+                score = res['scores_bm25'][rank-1]
+
+                is_checked = st.checkbox(
+                    f"**Rank #{rank}** — Score: {score:.4f}",
+                    key=f"bm25_{idx}"
+                )
+
+                # Tampilkan judul saja
+                st.markdown(f"📄 *{doc['Title']}*")
+
+                if is_checked:
+                    selected_bm25.append(idx)
+
+                st.markdown("")  # spasi kecil
+        
+        # Summary seleksi
+        ground_truth = set(selected_tfidf).union(set(selected_bm25))
+        
+        st.markdown(f"""
+        <div style='background:#ecfdf5; padding:15px; border-radius:10px; border-left:4px solid #10b981; margin:20px 0;'>
+            <b>✅ Anda telah menandai:</b><br>
+            • TF-IDF: <b>{len(selected_tfidf)}</b> dokumen relevan<br>
+            • BM25: <b>{len(selected_bm25)}</b> dokumen relevan<br>
+            • <b>Total dokumen unik yang relevan (Ground Truth): {len(ground_truth)}</b>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        
+        # ==========================================
+        # HITUNG EVALUASI
+        # ==========================================
+        st.markdown("### 🧮 Langkah 4: Hitung Metrik Evaluasi")
+        
+        if st.button("📊 HITUNG CONFUSION MATRIX & METRICS", type="primary", use_container_width=True):
             
-            # Buat DataFrame untuk plotting
-            comparison_df = pd.DataFrame({
-                'Metric': metrics * 2,
-                'Algorithm': ['TF-IDF']*4 + ['BM25']*4,
-                'Score': tfidf_scores + bm25_scores
+            if len(ground_truth) == 0:
+                st.error("❌ Harap pilih minimal 1 dokumen yang relevan sebagai Ground Truth!")
+                st.stop()
+            
+            st.session_state.ground_truth_confirmed = True
+            
+            # ==========================================
+            # FUNGSI EVALUASI LENGKAP
+            # ==========================================
+            def calculate_metrics(retrieved, relevant, total_docs):
+                """
+                Menghitung semua metrik evaluasi IR
+                
+                Args:
+                    retrieved: list of retrieved document indices
+                    relevant: set of relevant document indices (ground truth)
+                    total_docs: total documents in corpus
+                
+                Returns:
+                    dict dengan semua metrik
+                """
+                retrieved_set = set(retrieved)
+                
+                # Confusion Matrix Components
+                tp = len(retrieved_set.intersection(relevant))          # True Positive
+                fp = len(retrieved) - tp                                 # False Positive
+                fn = len(relevant) - tp                                  # False Negative
+                tn = total_docs - tp - fp - fn                          # True Negative
+                
+                # Metrics
+                precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+                recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+                f1_score = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+                
+                # Mean Average Precision (MAP)
+                hits = 0
+                sum_precisions = 0
+                for i, doc_idx in enumerate(retrieved, 1):
+                    if doc_idx in relevant:
+                        hits += 1
+                        sum_precisions += hits / i
+                
+                average_precision = sum_precisions / len(relevant) if len(relevant) > 0 else 0
+                
+                return {
+                    'tp': tp, 'fp': fp, 'fn': fn, 'tn': tn,
+                    'precision': precision,
+                    'recall': recall,
+                    'f1_score': f1_score,
+                    'map': average_precision
+                }
+            
+            # Hitung metrik untuk kedua algoritma
+            with st.spinner("⏳ Menghitung metrik evaluasi..."):
+                metrics_tfidf = calculate_metrics(
+                    retrieved=res['idx_tfidf'].tolist(),
+                    relevant=ground_truth,
+                    total_docs=len(df)
+                )
+                
+                metrics_bm25 = calculate_metrics(
+                    retrieved=res['idx_bm25'].tolist(),
+                    relevant=ground_truth,
+                    total_docs=len(df)
+                )
+            
+            st.success("✅ Perhitungan selesai!")
+            
+            # ==========================================
+            # TAMPILKAN CONFUSION MATRIX
+            # ==========================================
+            st.markdown("---")
+            st.markdown("### 📋 Confusion Matrix")
+            
+            col_matrix, col_explain = st.columns([1.2, 1])
+            
+            with col_matrix:
+                # Buat DataFrame untuk heatmap
+                matrix_df = pd.DataFrame({
+                    'TF-IDF': [
+                        metrics_tfidf['tp'],
+                        metrics_tfidf['fp'],
+                        metrics_tfidf['fn'],
+                        metrics_tfidf['tn']
+                    ],
+                    'BM25': [
+                        metrics_bm25['tp'],
+                        metrics_bm25['fp'],
+                        metrics_bm25['fn'],
+                        metrics_bm25['tn']
+                    ]
+                }, index=['True Positive (TP)', 'False Positive (FP)', 'False Negative (FN)', 'True Negative (TN)'])
+                
+                # Visualisasi heatmap
+                fig_matrix, ax_matrix = plt.subplots(figsize=(8, 6))
+                sns.heatmap(
+                    matrix_df, 
+                    annot=True, 
+                    fmt='d',
+                    cmap='RdYlGn',
+                    linewidths=2,
+                    linecolor='white',
+                    ax=ax_matrix,
+                    annot_kws={"size": 16, "weight": "bold"},
+                    cbar_kws={'label': 'Jumlah Dokumen'}
+                )
+                ax_matrix.set_title("Confusion Matrix untuk Information Retrieval", 
+                                   fontsize=14, fontweight='bold', pad=20)
+                ax_matrix.set_xlabel("Algoritma", fontsize=12, fontweight='bold')
+                ax_matrix.set_ylabel("Kategori", fontsize=12, fontweight='bold')
+                
+                plt.tight_layout()
+                st.pyplot(fig_matrix)
+            
+            with col_explain:
+                st.markdown("""
+                <div style='background:#f0f9ff; padding:20px; border-radius:10px; border:2px solid #3b82f6;'>
+                    <h4 style='color:#1e40af; margin-top:0;'>📖 Penjelasan Confusion Matrix</h4>
+                    <ul style='color:#1e3a8a; line-height:2;'>
+                        <li><b>TP (True Positive):</b><br>Dokumen relevan yang berhasil dikembalikan sistem ✅</li>
+                        <li><b>FP (False Positive):</b><br>Dokumen tidak relevan yang dikembalikan sistem ❌</li>
+                        <li><b>FN (False Negative):</b><br>Dokumen relevan yang tidak dikembalikan ⚠️</li>
+                        <li><b>TN (True Negative):</b><br>Dokumen tidak relevan yang tidak dikembalikan ✓</li>
+                    </ul>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # ==========================================
+            # TABEL METRIK
+            # ==========================================
+            st.markdown("---")
+            st.markdown("### 📊 Tabel Metrik Evaluasi")
+            
+            metrics_table = pd.DataFrame({
+                "Metrik": ["Precision", "Recall", "F1-Score", "MAP (Mean Avg Precision)"],
+                "TF-IDF": [
+                    metrics_tfidf['precision'],
+                    metrics_tfidf['recall'],
+                    metrics_tfidf['f1_score'],
+                    metrics_tfidf['map']
+                ],
+                "BM25": [
+                    metrics_bm25['precision'],
+                    metrics_bm25['recall'],
+                    metrics_bm25['f1_score'],
+                    metrics_bm25['map']
+                ]
             })
             
-            # Buat figure
-            fig_bar, ax_bar = plt.subplots(figsize=(12, 6))
+            # Tambahkan kolom selisih
+            metrics_table['Selisih (TF-IDF - BM25)'] = metrics_table['TF-IDF'] - metrics_table['BM25']
             
-            # Set posisi bar
-            x = np.arange(len(metrics))
+            # Format dan styling
+            st.dataframe(
+                metrics_table.style
+                    .format({
+                        'TF-IDF': '{:.4f}',
+                        'BM25': '{:.4f}',
+                        'Selisih (TF-IDF - BM25)': '{:+.4f}'
+                    })
+                    .background_gradient(subset=['TF-IDF', 'BM25'], cmap='RdYlGn', vmin=0, vmax=1)
+                    .set_properties(**{
+                        'text-align': 'center',
+                        'font-weight': 'bold',
+                        'font-size': '14px'
+                    })
+                    .set_table_styles([
+                        {'selector': 'th', 'props': [('background-color', '#1e293b'), 
+                                                     ('color', 'white'), 
+                                                     ('font-weight', 'bold'),
+                                                     ('text-align', 'center'),
+                                                     ('font-size', '15px')]}
+                    ]),
+                use_container_width=True
+            )
+            
+            # ==========================================
+            # BAR CHART PERBANDINGAN
+            # ==========================================
+            st.markdown("---")
+            st.markdown("### 📊 Perbandingan Visual Metrik")
+            
+            metrics_names = ['Precision', 'Recall', 'F1-Score', 'MAP']
+            tfidf_values = [
+                metrics_tfidf['precision'],
+                metrics_tfidf['recall'],
+                metrics_tfidf['f1_score'],
+                metrics_tfidf['map']
+            ]
+            bm25_values = [
+                metrics_bm25['precision'],
+                metrics_bm25['recall'],
+                metrics_bm25['f1_score'],
+                metrics_bm25['map']
+            ]
+            
+            fig_comparison, ax_comp = plt.subplots(figsize=(14, 7))
+            
+            x = np.arange(len(metrics_names))
             width = 0.35
             
-            # Buat bars
-            bars1 = ax_bar.bar(x - width/2, tfidf_scores, width, 
-                            label='TF-IDF', color='#395886', 
-                            edgecolor='black', linewidth=1.2)
-            bars2 = ax_bar.bar(x + width/2, bm25_scores, width, 
-                            label='BM25', color='#7BBDE8', 
-                            edgecolor='black', linewidth=1.2)
+            bars1 = ax_comp.bar(x - width/2, tfidf_values, width, 
+                               label='TF-IDF', color='#3b82f6', 
+                               edgecolor='black', linewidth=1.5)
+            bars2 = ax_comp.bar(x + width/2, bm25_values, width, 
+                               label='BM25', color='#f59e0b', 
+                               edgecolor='black', linewidth=1.5)
             
             # Tambahkan nilai di atas bar
             def add_value_labels(bars):
                 for bar in bars:
                     height = bar.get_height()
-                    ax_bar.text(bar.get_x() + bar.get_width()/2., height,
-                            f'{height:.4f}',
-                            ha='center', va='bottom', 
-                            fontsize=11, fontweight='bold')
+                    ax_comp.text(bar.get_x() + bar.get_width()/2., height,
+                                f'{height:.3f}',
+                                ha='center', va='bottom', 
+                                fontsize=12, fontweight='bold')
             
             add_value_labels(bars1)
             add_value_labels(bars2)
             
-            # Styling
-            ax_bar.set_xlabel('Metrik Evaluasi', fontsize=13, fontweight='bold')
-            ax_bar.set_ylabel('Score', fontsize=13, fontweight='bold')
-            ax_bar.set_title('Perbandingan Kinerja TF-IDF vs BM25', 
-                            fontsize=15, fontweight='bold', pad=20)
-            ax_bar.set_xticks(x)
-            ax_bar.set_xticklabels(metrics, fontsize=12)
-            ax_bar.legend(fontsize=12, loc='upper right')
-            ax_bar.set_ylim(0, max(max(tfidf_scores), max(bm25_scores)) * 1.15)
-            ax_bar.grid(axis='y', alpha=0.3, linestyle='--')
+            ax_comp.set_xlabel('Metrik Evaluasi', fontsize=14, fontweight='bold')
+            ax_comp.set_ylabel('Nilai Score', fontsize=14, fontweight='bold')
+            ax_comp.set_title('Perbandingan Kinerja TF-IDF vs BM25', 
+                             fontsize=16, fontweight='bold', pad=20)
+            ax_comp.set_xticks(x)
+            ax_comp.set_xticklabels(metrics_names, fontsize=13, fontweight='bold')
+            ax_comp.legend(fontsize=13, loc='upper right', framealpha=0.9)
+            ax_comp.set_ylim(0, max(max(tfidf_values), max(bm25_values)) * 1.2)
+            ax_comp.grid(axis='y', alpha=0.3, linestyle='--')
+            ax_comp.axhline(y=0.5, color='red', linestyle=':', alpha=0.5, label='Threshold 0.5')
             
             plt.tight_layout()
-            st.pyplot(fig_bar)
-
+            st.pyplot(fig_comparison)
+            
+            # Penjelasan Trade-off
             st.markdown("---")
-
-            # KESIMPULAN AKHIR
-            if map1 == map2:
-                st.info("📌 Analisis: Kedua algoritma (TF-IDF dan BM25) memberikan performa **yang sama** untuk query ini.")
-            elif map1 > map2:
-                st.success("🏆 Analisis: Berdasarkan skor MAP, algoritma **TF-IDF** memberikan hasil yang lebih relevan.")
+            st.markdown("### 🔄 Analisis Trade-off Precision vs Recall")
+            st.markdown("""
+            <div style='background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
+                        padding: 20px; border-radius: 12px; border-left: 5px solid #0284c7; margin-top: 20px;'>
+                <h4 style='color: #0c4a6e; margin-top: 0;'>💡 Memahami Trade-off Precision vs Recall</h4>
+                <ul style='color: #0369a1; line-height: 1.8;'>
+                    <li><b>Precision tinggi:</b> Sistem hanya mengembalikan dokumen yang sangat yakin relevan → Hasil sedikit tapi akurat</li>
+                    <li><b>Recall tinggi:</b> Sistem mengembalikan semua dokumen yang mungkin relevan → Hasil banyak tapi ada noise</li>
+                    <li><b>Ideal:</b> Keseimbangan antara keduanya (mendekati garis diagonal Perfect Balance)</li>
+                    <li><b>F1-Score:</b> Harmonic mean yang menyeimbangkan Precision dan Recall</li>
+                </ul>
+                <p style='margin-top: 15px; color: #075985; font-weight: 600;'>
+                    📌 Sistem terbaik berada di kuadran kanan atas (Precision > 0.7 DAN Recall > 0.7)
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # ==========================================
+            # ANALISIS TRADE-OFF
+            # ==========================================
+            col_explain1, col_explain2 = st.columns(2)
+            
+            with col_explain1:
+                # Analisis TF-IDF
+                p_tfidf = metrics_tfidf['precision']
+                r_tfidf = metrics_tfidf['recall']
+                
+                if p_tfidf > r_tfidf + 0.15:
+                    analysis_tfidf = "⚠️ **Sistem terlalu selektif**<br>Precision tinggi tapi banyak dokumen relevan terlewat (Recall rendah)"
+                    color_tfidf = "#fef3c7"
+                    border_tfidf = "#f59e0b"
+                elif r_tfidf > p_tfidf + 0.15:
+                    analysis_tfidf = "⚠️ **Sistem terlalu inklusif**<br>Recall tinggi tapi banyak dokumen tidak relevan masuk (Precision rendah)"
+                    color_tfidf = "#fee2e2"
+                    border_tfidf = "#ef4444"
+                else:
+                    analysis_tfidf = "✅ **Sistem seimbang**<br>Trade-off yang baik antara Precision dan Recall"
+                    color_tfidf = "#d1fae5"
+                    border_tfidf = "#10b981"
+                
+                st.markdown(f"""
+                <div style='background:{color_tfidf}; padding:20px; border-radius:10px; border-left:5px solid {border_tfidf};'>
+                    <h4 style='margin-top:0; color:#1e293b;'>🔵 TF-IDF</h4>
+                    <ul style='line-height:2; color:#1e293b;'>
+                        <li><b>Precision:</b> {p_tfidf:.2%} → {"<span style='color:green'>✓ Tinggi</span>" if p_tfidf > 0.7 else "<span style='color:red'>✗ Rendah</span>"}</li>
+                        <li><b>Recall:</b> {r_tfidf:.2%} → {"<span style='color:green'>✓ Tinggi</span>" if r_tfidf > 0.7 else "<span style='color:red'>✗ Rendah</span>"}</li>
+                    </ul>
+                    <p style='margin:10px 0 0 0; font-weight:bold;'>{analysis_tfidf}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col_explain2:
+                # Analisis BM25
+                p_bm25 = metrics_bm25['precision']
+                r_bm25 = metrics_bm25['recall']
+                
+                if p_bm25 > r_bm25 + 0.15:
+                    analysis_bm25 = "⚠️ **Sistem terlalu selektif**<br>Precision tinggi tapi banyak dokumen relevan terlewat (Recall rendah)"
+                    color_bm25 = "#fef3c7"
+                    border_bm25 = "#f59e0b"
+                elif r_bm25 > p_bm25 + 0.15:
+                    analysis_bm25 = "⚠️ **Sistem terlalu inklusif**<br>Recall tinggi tapi banyak dokumen tidak relevan masuk (Precision rendah)"
+                    color_bm25 = "#fee2e2"
+                    border_bm25 = "#ef4444"
+                else:
+                    analysis_bm25 = "✅ **Sistem seimbang**<br>Trade-off yang baik antara Precision dan Recall"
+                    color_bm25 = "#d1fae5"
+                    border_bm25 = "#10b981"
+                
+                st.markdown(f"""
+                <div style='background:{color_bm25}; padding:20px; border-radius:10px; border-left:5px solid {border_bm25};'>
+                    <h4 style='margin-top:0; color:#1e293b;'>🟡 BM25</h4>
+                    <ul style='line-height:2; color:#1e293b;'>
+                        <li><b>Precision:</b> {p_bm25:.2%} → {"<span style='color:green'>✓ Tinggi</span>" if p_bm25 > 0.7 else "<span style='color:red'>✗ Rendah</span>"}</li>
+                        <li><b>Recall:</b> {r_bm25:.2%} → {"<span style='color:green'>✓ Tinggi</span>" if r_bm25 > 0.7 else "<span style='color:red'>✗ Rendah</span>"}</li>
+                    </ul>
+                    <p style='margin:10px 0 0 0; font-weight:bold;'>{analysis_bm25}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            # ==========================================
+            # SCATTER PLOT TRADE-OFF
+            # ==========================================
+            st.markdown("---")
+            st.markdown("#### 📍 Visualisasi Trade-off")
+            
+            fig_tradeoff, ax_trade = plt.subplots(figsize=(12, 8))
+            
+            # Plot points
+            ax_trade.scatter([p_tfidf], [r_tfidf], s=500, c='#3b82f6', 
+                            marker='o', label='TF-IDF', 
+                            edgecolor='black', linewidth=2.5, zorder=5, alpha=0.8)
+            ax_trade.scatter([p_bm25], [r_bm25], s=500, c='#f59e0b', 
+                            marker='s', label='BM25', 
+                            edgecolor='black', linewidth=2.5, zorder=5, alpha=0.8)
+            
+            # Annotate points
+            ax_trade.annotate(f'TF-IDF\nP={p_tfidf:.3f}\nR={r_tfidf:.3f}', 
+                             xy=(p_tfidf, r_tfidf), 
+                             xytext=(p_tfidf+0.08, r_tfidf-0.08),
+                             fontsize=11, fontweight='bold',
+                             bbox=dict(boxstyle='round,pad=0.5', 
+                                      facecolor='#dbeafe', 
+                                      edgecolor='#3b82f6',
+                                      linewidth=2),
+                             arrowprops=dict(arrowstyle='->', 
+                                           connectionstyle='arc3,rad=0.3',
+                                           color='#3b82f6', 
+                                           lw=2))
+            
+            ax_trade.annotate(f'BM25\nP={p_bm25:.3f}\nR={r_bm25:.3f}', 
+                             xy=(p_bm25, r_bm25), 
+                             xytext=(p_bm25-0.15, r_bm25+0.08),
+                             fontsize=11, fontweight='bold',
+                             bbox=dict(boxstyle='round,pad=0.5', 
+                                      facecolor='#fef3c7', 
+                                      edgecolor='#f59e0b',
+                                      linewidth=2),
+                             arrowprops=dict(arrowstyle='->', 
+                                           connectionstyle='arc3,rad=-0.3',
+                                           color='#f59e0b', 
+                                           lw=2))
+            
+            # Ideal line
+            ax_trade.plot([0, 1], [0, 1], 'k--', alpha=0.3, linewidth=2, label='Perfect Balance (P=R)')
+            
+            # High performance zones
+            ax_trade.fill_between([0.7, 1], 0, 1, alpha=0.05, color='green')
+            ax_trade.axhline(y=0.7, color='green', linestyle=':', alpha=0.3, linewidth=1.5)
+            ax_trade.axvline(x=0.7, color='blue', linestyle=':', alpha=0.3, linewidth=1.5)
+            ax_trade.text(0.85, 0.05, 'High Precision\nZone', fontsize=9, 
+                         color='blue', alpha=0.6, ha='center', fontweight='bold')
+            ax_trade.text(0.05, 0.85, 'High Recall\nZone', fontsize=9, 
+                         color='green', alpha=0.6, ha='center', fontweight='bold')
+            
+            ax_trade.set_xlabel('Precision', fontsize=13, fontweight='bold')
+            ax_trade.set_ylabel('Recall', fontsize=13, fontweight='bold')
+            ax_trade.set_title('Trade-off Precision vs Recall Analysis', 
+                              fontsize=15, fontweight='bold', pad=20)
+            ax_trade.legend(fontsize=11, loc='lower left', framealpha=0.9)
+            ax_trade.grid(alpha=0.3, linestyle='--')
+            ax_trade.set_xlim(-0.05, 1.1)
+            ax_trade.set_ylim(-0.05, 1.1)
+            
+            plt.tight_layout()
+            st.pyplot(fig_tradeoff)
+            
+            # Plot points
+            ax_trade.scatter([p_tfidf], [r_tfidf], s=500, c='#3b82f6', 
+                            marker='o', label='TF-IDF', 
+                            edgecolor='black', linewidth=2.5, zorder=5, alpha=0.8)
+            ax_trade.scatter([p_bm25], [r_bm25], s=500, c='#f59e0b', 
+                            marker='s', label='BM25', 
+                            edgecolor='black', linewidth=2.5, zorder=5, alpha=0.8)
+            
+            col_winner, col_stats = st.columns([1, 1])
+            
+            with col_winner:
+                # Tentukan pemenang berdasarkan F1-Score
+                if metrics_tfidf['f1_score'] > metrics_bm25['f1_score']:
+                    winner = "TF-IDF"
+                    winner_color = "#3b82f6"
+                    winner_emoji = "🔵"
+                elif metrics_bm25['f1_score'] > metrics_tfidf['f1_score']:
+                    winner = "BM25"
+                    winner_color = "#f59e0b"
+                    winner_emoji = "🟡"
+                else:
+                    winner = "SEIMBANG"
+                    winner_color = "#10b981"
+                    winner_emoji = "⚖️"
+                
+                st.markdown(f"""
+                <div style='background: linear-gradient(135deg, {winner_color}22 0%, {winner_color}11 100%); 
+                            padding: 25px; border-radius: 15px; border: 3px solid {winner_color}; text-align: center;'>
+                    <h2 style='color: {winner_color}; margin: 0; font-size: 48px;'>{winner_emoji}</h2>
+                    <h3 style='color: #1e293b; margin: 10px 0;'>Algoritma Terbaik</h3>
+                    <h1 style='color: {winner_color}; margin: 5px 0; font-size: 36px;'>{winner}</h1>
+                    <p style='color: #64748b; margin-top: 10px; font-size: 14px;'>
+                        Berdasarkan F1-Score untuk query ini
+                    </p>
+                </div>
+                """, unsafe_allow_html=True)
+            
+            with col_stats:
+                st.markdown("""
+                <div style='background: #f8fafc; padding: 20px; border-radius: 12px; border: 2px solid #e2e8f0;'>
+                    <h4 style='color: #1e293b; margin-top: 0;'>📊 Ringkasan Performa</h4>
+                """, unsafe_allow_html=True)
+                
+                # Comparison table
+                comparison_data = {
+                    "": ["TF-IDF", "BM25"],
+                    "TP": [metrics_tfidf['tp'], metrics_bm25['tp']],
+                    "FP": [metrics_tfidf['fp'], metrics_bm25['fp']],
+                    "Precision": [f"{metrics_tfidf['precision']:.3f}", f"{metrics_bm25['precision']:.3f}"],
+                    "Recall": [f"{metrics_tfidf['recall']:.3f}", f"{metrics_bm25['recall']:.3f}"],
+                    "F1": [f"{metrics_tfidf['f1_score']:.3f}", f"{metrics_bm25['f1_score']:.3f}"]
+                }
+                
+                st.dataframe(
+                    pd.DataFrame(comparison_data).set_index(""),
+                    use_container_width=True,
+                    height=120
+                )
+                
+                st.markdown("</div>", unsafe_allow_html=True)
+            
+            # Rekomendasi
+            st.markdown("---")
+            st.markdown("### 💡 Rekomendasi")
+            
+            avg_f1 = (metrics_tfidf['f1_score'] + metrics_bm25['f1_score']) / 2
+            
+            if avg_f1 > 0.7:
+                recommendation = "✅ **Performa Excellent** - Kedua algoritma memberikan hasil yang sangat baik untuk query ini."
+                rec_color = "#d1fae5"
+                rec_border = "#10b981"
+            elif avg_f1 > 0.5:
+                recommendation = "⚠️ **Performa Good** - Hasil cukup baik, namun masih ada ruang untuk improvement dengan tuning parameter."
+                rec_color = "#fef3c7"
+                rec_border = "#f59e0b"
             else:
-                st.success("🏆 Analisis: Berdasarkan skor MAP, algoritma **BM25** memberikan hasil yang lebih relevan.")
+                recommendation = "❌ **Performa Poor** - Perlu evaluasi ulang query atau pertimbangkan preprocessing yang lebih baik."
+                rec_color = "#fee2e2"
+                rec_border = "#ef4444"
+            
+            st.markdown(f"""
+            <div style='background: {rec_color}; padding: 20px; border-radius: 12px; border-left: 5px solid {rec_border};'>
+                <p style='color: #1e293b; margin: 0; font-size: 16px; line-height: 1.8;'>{recommendation}</p>
+            </div>
+            """, unsafe_allow_html=True)
 
 # --- PAGE 4: DATASET ---
 elif menu == "📂 Dataset Korpus":
