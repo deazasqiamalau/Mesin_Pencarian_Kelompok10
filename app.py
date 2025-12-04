@@ -561,8 +561,6 @@ if not st.session_state.app_started:
     </div>
     """, unsafe_allow_html=True)
     
-    st.markdown("<br>", unsafe_allow_html=True)
-    
     # Feature Cards
     col1, col2, col3, col4 = st.columns(4)
     
@@ -601,8 +599,6 @@ if not st.session_state.app_started:
             <div class="feature-desc">Korpus berita pendidikan Indonesia yang komprehensif</div>
         </div>
         """, unsafe_allow_html=True)
-    
-    st.markdown("<br><br>", unsafe_allow_html=True)
     
     # Team Section
     def load_base64(path):
@@ -661,8 +657,7 @@ if not st.session_state.app_started:
             </div>
         """, unsafe_allow_html=True)
 
-    
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     
     # Start Button
     col_center = st.columns([1, 2, 1])
@@ -700,7 +695,7 @@ if not st.session_state.app_started:
             )
     
     # Footer
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("""
     <div style='text-align: center; color: #64748b; font-size: 14px; padding: 20px;'>
         <b>© 2025 Kelompok 10 - Teknologi Pencarian Informasi</b><br>
@@ -942,37 +937,53 @@ if menu == "🏠 Dashboard":
 # --- PAGE 2: PENCARIAN ---
 elif menu == "🔍 Mesin Pencari":
     st.markdown("<h2 style='margin-bottom:10px;'>🔍 Pencarian Berita Pendidikan</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='color:#64748b; margin-bottom:25px;'>Cari informasi berita pendidikan dengan algoritma TF-IDF dan BM25</p>", unsafe_allow_html=True)
     
-    # Search Bar Container
-    with st.container():
-        st.markdown("<div style='background:#f8fafc; padding:20px; border-radius:12px; border:1px solid #e2e8f0; margin-bottom:20px;'>", unsafe_allow_html=True)
-        c_in, c_go = st.columns([5, 1])
-        with c_in:
-            query = st.text_input("Kata Kunci", placeholder="Ketik topik (misal: kurikulum merdeka, beasiswa...)", label_visibility="collapsed")
-        with c_go:
-            st.write("") # Spacer agar sejajar
-            btn_search = st.button("TELUSURI")
-        st.markdown("</div>", unsafe_allow_html=True)
+    # Search Bar Container 
+    col_in, col_btn = st.columns([4, 1])
+    
+    with col_in:
+        query = st.text_input(
+            "Kata Kunci", 
+            placeholder="Ketik topik (misal: kurikulum merdeka, beasiswa...)",
+            label_visibility="collapsed",
+            key="search_query"
+        )
+    
+    with col_btn:
+        btn_search = st.button("🔍 TELUSURI", use_container_width=True, type="primary")
             
-    if query:
+    if query and btn_search:
         clean_q = preprocess_text(query, stemmer, stop_words)
-        st.markdown(f"**Query Processed:** `{clean_q}`")
+        
+        # Info Query
+        st.markdown(f"""
+        <div style='background:#f0f9ff; padding:15px; border-radius:10px; border-left:4px solid #3b82f6; margin-bottom:25px;'>
+            <b>🔎 Query Asli:</b> <span style='color:#1e40af;'>{query}</span><br>
+            <b>✨ Setelah Preprocessing:</b> <code style='background:#dbeafe; padding:3px 8px; border-radius:5px;'>{clean_q}</code>
+        </div>
+        """, unsafe_allow_html=True)
         
         # TF-IDF
-        s = time.time()
-        q_v = vectorizer.transform([clean_q])
-        sc_tf = cosine_similarity(q_v, tfidf_matrix).flatten()
-        idx_tf = sc_tf.argsort()[-10:][::-1]
-        t_tf = time.time() - s
+        with st.spinner("⏳ Memproses TF-IDF..."):
+            s = time.time()
+            q_v = vectorizer.transform([clean_q])
+            sc_tf = cosine_similarity(q_v, tfidf_matrix).flatten()
+            idx_tf = sc_tf.argsort()[-10:][::-1]
+            t_tf = time.time() - s
         
         # BM25
-        s = time.time()
-        sc_bm = bm25.get_scores(clean_q.split())
-        idx_bm = np.argsort(sc_bm)[-10:][::-1]
-        t_bm = time.time() - s
+        with st.spinner("⏳ Memproses BM25..."):
+            s = time.time()
+            sc_bm = bm25.get_scores(clean_q.split())
+            idx_bm = np.argsort(sc_bm)[-10:][::-1]
+            t_bm = time.time() - s
         
         # Comparison Tabs
-        tab_a, tab_b = st.tabs([f"🔵 Hasil TF-IDF ({t_tf:.4f}s)", f"🟡 Hasil BM25 ({t_bm:.4f}s)"])
+        tab_a, tab_b = st.tabs([
+            f"🔵 Hasil TF-IDF ({t_tf:.4f} detik)", 
+            f"🟡 Hasil BM25 ({t_bm:.4f} detik)"
+        ])
         
         def render_results(indices, scores, color_border):
             found = False
@@ -995,10 +1006,50 @@ elif menu == "🔍 Mesin Pencari":
                         <div class="result-snippet">{hl_snip}</div>
                     </div>
                     """, unsafe_allow_html=True)
-            if not found: st.warning("Tidak ada dokumen yang relevan.")
             
-        with tab_a: render_results(idx_tf, sc_tf, "#2563eb")
-        with tab_b: render_results(idx_bm, sc_bm, "#eab308")
+            if not found: 
+                st.warning("⚠️ Tidak ada dokumen yang relevan dengan query Anda. Coba gunakan kata kunci lain.")
+            
+        with tab_a: 
+            render_results(idx_tf, sc_tf, "#2563eb")
+            
+        with tab_b: 
+            render_results(idx_bm, sc_bm, "#eab308")
+    
+    elif not query and btn_search:
+        st.warning("⚠️ Mohon masukkan kata kunci pencarian terlebih dahulu!")
+    
+    # Info tambahan jika belum search
+    if not query or not btn_search:
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown("""
+            <div style='background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); 
+                        padding:15px; border-radius:15px; border:2px solid #93c5fd;'>
+                <h3 style='color:#1e40af; margin-bottom:5px;'>💡 Tips Pencarian</h3>
+                <ul style='color:#1e3a8a; line-height:1.8;'>
+                    <li>Gunakan kata kunci spesifik</li>
+                    <li>Coba variasi kata yang berbeda</li>
+                    <li>Kombinasikan 2-3 kata kunci</li>
+                    <li>Contoh: "beasiswa luar negeri"</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col2:
+            st.markdown("""
+            <div style='background:linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); 
+                        padding:15px; border-radius:15px; border:2px solid #fcd34d;'>
+                <h3 style='color:#92400e; margin-bottom:5px;'>🎯 Topik Populer</h3>
+                <ul style='color:#78350f; line-height:1.8;'>
+                    <li>Kurikulum Merdeka</li>
+                    <li>Sekolah Dasar</li>
+                    <li>Beasiswa</li>
+                    <li>Pendidikan Vokasi</li>
+                </ul>
+            </div>
+            """, unsafe_allow_html=True)
 
 # --- PAGE 3: EVALUASI ---
 elif menu == "⚙️ Evaluasi Kinerja":
@@ -1009,9 +1060,10 @@ elif menu == "⚙️ Evaluasi Kinerja":
     # Input Query
     col_q, col_b = st.columns([3, 1])
     with col_q:
-        q_eval = st.text_input("Query Uji", "pendidikan vokasi")
+        q_eval = st.text_input("Query Uji")
     with col_b:
-        st.write(""); st.write("")
+        st.write("")
+        st.write("")
         btn_run = st.button("Mulai Evaluasi")
     
     # Session state
@@ -1023,19 +1075,75 @@ elif menu == "⚙️ Evaluasi Kinerja":
         cln = preprocess_text(q_eval, stemmer, stop_words)
         
         # TF-IDF ranking
-        idx_t = cosine_similarity(vectorizer.transform([cln]), tfidf_matrix).flatten()\
-                   .argsort()[-10:][::-1]
+        q_vec_tfidf = vectorizer.transform([cln])
+        scores_tfidf = cosine_similarity(q_vec_tfidf, tfidf_matrix).flatten()
+        idx_t = scores_tfidf.argsort()[-10:][::-1]
+        top_scores_tfidf = scores_tfidf[idx_t]
         
         # BM25 ranking
-        idx_b = np.argsort(bm25.get_scores(cln.split()))[-10:][::-1]
+        scores_bm25 = bm25.get_scores(cln.split())
+        idx_b = np.argsort(scores_bm25)[-10:][::-1]
+        top_scores_bm25 = scores_bm25[idx_b]
         
         # Simpan sesi
-        st.session_state.eval_session = {'tf': idx_t, 'bm': idx_b}
+        st.session_state.eval_session = {
+            'tf': idx_t, 
+            'bm': idx_b,
+            'scores_tfidf': top_scores_tfidf,
+            'scores_bm25': top_scores_bm25
+        }
     
     # Jika sesi ranking ada
     if st.session_state.eval_session:
         res = st.session_state.eval_session
         
+        # BAR CHART PERBANDINGAN
+        st.markdown("### 📊 Perbandingan Skor TF-IDF vs BM25 (Top 10 Dokumen)")
+        
+        # Siapkan data untuk plotting
+        ranks = list(range(1, 11))
+        
+        # Buat figure dengan 2 subplot
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 7))
+        
+        # Bar Chart TF-IDF
+        colors_tfidf = plt.cm.Blues(np.linspace(0.4, 0.8, 10))
+        bars1 = ax1.barh(ranks, res['scores_tfidf'][::-1], color=colors_tfidf, edgecolor='navy', linewidth=1.5)
+        ax1.set_xlabel('Score TF-IDF', fontsize=13, fontweight='bold')
+        ax1.set_ylabel('Rank', fontsize=13, fontweight='bold')
+        ax1.set_title('🔵 Top 10 Dokumen - TF-IDF', fontsize=15, fontweight='bold', pad=20)
+        ax1.set_yticks(ranks)
+        ax1.set_yticklabels([f'#{i}' for i in reversed(ranks)], fontsize=11)
+        ax1.invert_yaxis()
+        ax1.grid(axis='x', alpha=0.3, linestyle='--')
+        
+        # Tambahkan nilai di ujung bar dengan ukuran lebih besar
+        for i, (bar, score) in enumerate(zip(bars1, res['scores_tfidf'][::-1])):
+            ax1.text(score + 0.001, bar.get_y() + bar.get_height()/2, 
+                    f'{score:.4f}', va='center', fontsize=12, fontweight='bold')
+        
+        # Bar Chart BM25
+        colors_bm25 = plt.cm.YlOrRd(np.linspace(0.4, 0.8, 10))
+        bars2 = ax2.barh(ranks, res['scores_bm25'][::-1], color=colors_bm25, edgecolor='darkred', linewidth=1.5)
+        ax2.set_xlabel('Score BM25', fontsize=13, fontweight='bold')
+        ax2.set_ylabel('Rank', fontsize=13, fontweight='bold')
+        ax2.set_title('🟡 Top 10 Dokumen - BM25', fontsize=15, fontweight='bold', pad=20)
+        ax2.set_yticks(ranks)
+        ax2.set_yticklabels([f'#{i}' for i in reversed(ranks)], fontsize=11)
+        ax2.invert_yaxis()
+        ax2.grid(axis='x', alpha=0.3, linestyle='--')
+        
+        # Tambahkan nilai di ujung bar dengan ukuran lebih besar
+        for i, (bar, score) in enumerate(zip(bars2, res['scores_bm25'][::-1])):
+            ax2.text(score + 0.1, bar.get_y() + bar.get_height()/2, 
+                    f'{score:.2f}', va='center', fontsize=12, fontweight='bold')
+        
+        plt.tight_layout()
+        st.pyplot(fig)
+        
+        st.markdown("---")
+        
+        # TANDAI DOKUMEN RELEVAN
         st.markdown("### 👉 Tandai Dokumen Relevan")
         col_tf, col_bm = st.columns(2)
         sel_t, sel_b = [], []
@@ -1062,16 +1170,14 @@ elif menu == "⚙️ Evaluasi Kinerja":
                 st.error("Harap pilih minimal 1 dokumen yang relevan!")
                 st.stop()
 
-            # ===========================
-            #  Fungsi evaluasi
-            # ===========================
+            # Fungsi evaluasi
             def get_stats(retrieved, relevant):
                 ret_set = set(retrieved)
                 tp = len(ret_set.intersection(relevant))
                 fp = len(retrieved) - tp
 
-                prec = tp / len(retrieved)
-                rec = tp / len(relevant)
+                prec = tp / len(retrieved) if len(retrieved) > 0 else 0
+                rec = tp / len(relevant) if len(relevant) > 0 else 0
                 f1 = (2 * prec * rec) / (prec + rec) if (prec + rec) > 0 else 0
 
                 # Hitung MAP/AP
@@ -1080,7 +1186,7 @@ elif menu == "⚙️ Evaluasi Kinerja":
                     if x in relevant:
                         hits += 1
                         sum_p += hits / (i + 1)
-                ap = sum_p / len(relevant)
+                ap = sum_p / len(relevant) if len(relevant) > 0 else 0
 
                 return tp, fp, prec, rec, f1, ap
 
@@ -1088,9 +1194,7 @@ elif menu == "⚙️ Evaluasi Kinerja":
             tp1, fp1, p1, r1, f11, map1 = get_stats(res['tf'], truth)
             tp2, fp2, p2, r2, f12, map2 = get_stats(res['bm'], truth)
 
-            # ===========================
-            #  1. HEATMAP MATRIX
-            # ===========================
+            # HEATMAP MATRIX
             st.subheader("🔥 Retrieval Performance Matrix")
             col_mat, col_tab = st.columns([1, 1])
 
@@ -1100,16 +1204,14 @@ elif menu == "⚙️ Evaluasi Kinerja":
                     'BM25': [tp2, fp2]
                 }, index=['Relevan (TP)', 'Irrelevan (FP)'])
 
-                fig, ax = plt.subplots(figsize=(6, 4))
+                fig_heat, ax_heat = plt.subplots(figsize=(6, 4))
                 sns.heatmap(matrix_data, annot=True, fmt='d',
                             cmap='Blues', linewidths=1,
-                            ax=ax, annot_kws={"size": 16, "weight": "bold"})
-                ax.set_title("Confusion Matrix (Top-10 Results)")
-                st.pyplot(fig)
+                            ax=ax_heat, annot_kws={"size": 16, "weight": "bold"})
+                ax_heat.set_title("Confusion Matrix (Top-10 Results)", fontsize=14, fontweight='bold')
+                st.pyplot(fig_heat)
 
-            # ===========================
-            #  2. TABEL METRIK
-            # ===========================
+            # TABEL METRIK
             with col_tab:
                 eval_df = pd.DataFrame({
                     "Metric": ["Precision", "Recall", "F1-Score", "MAP"],
@@ -1123,16 +1225,73 @@ elif menu == "⚙️ Evaluasi Kinerja":
                         .background_gradient(cmap="Greens", axis=1)
                 )
 
-            # ===========================
-            #  3. KESIMPULAN AKHIR
-            # ===========================
+            st.markdown("---")
+
+            # BAR CHART PERBANDINGAN METRIK
+            st.subheader("📊 Perbandingan Metrik Evaluasi")
+            
+            # Siapkan data untuk bar chart
+            metrics = ['Precision', 'Recall', 'F1-Score', 'MAP']
+            tfidf_scores = [p1, r1, f11, map1]
+            bm25_scores = [p2, r2, f12, map2]
+            
+            # Buat DataFrame untuk plotting
+            comparison_df = pd.DataFrame({
+                'Metric': metrics * 2,
+                'Algorithm': ['TF-IDF']*4 + ['BM25']*4,
+                'Score': tfidf_scores + bm25_scores
+            })
+            
+            # Buat figure
+            fig_bar, ax_bar = plt.subplots(figsize=(12, 6))
+            
+            # Set posisi bar
+            x = np.arange(len(metrics))
+            width = 0.35
+            
+            # Buat bars
+            bars1 = ax_bar.bar(x - width/2, tfidf_scores, width, 
+                            label='TF-IDF', color='#395886', 
+                            edgecolor='black', linewidth=1.2)
+            bars2 = ax_bar.bar(x + width/2, bm25_scores, width, 
+                            label='BM25', color='#7BBDE8', 
+                            edgecolor='black', linewidth=1.2)
+            
+            # Tambahkan nilai di atas bar
+            def add_value_labels(bars):
+                for bar in bars:
+                    height = bar.get_height()
+                    ax_bar.text(bar.get_x() + bar.get_width()/2., height,
+                            f'{height:.4f}',
+                            ha='center', va='bottom', 
+                            fontsize=11, fontweight='bold')
+            
+            add_value_labels(bars1)
+            add_value_labels(bars2)
+            
+            # Styling
+            ax_bar.set_xlabel('Metrik Evaluasi', fontsize=13, fontweight='bold')
+            ax_bar.set_ylabel('Score', fontsize=13, fontweight='bold')
+            ax_bar.set_title('Perbandingan Kinerja TF-IDF vs BM25', 
+                            fontsize=15, fontweight='bold', pad=20)
+            ax_bar.set_xticks(x)
+            ax_bar.set_xticklabels(metrics, fontsize=12)
+            ax_bar.legend(fontsize=12, loc='upper right')
+            ax_bar.set_ylim(0, max(max(tfidf_scores), max(bm25_scores)) * 1.15)
+            ax_bar.grid(axis='y', alpha=0.3, linestyle='--')
+            
+            plt.tight_layout()
+            st.pyplot(fig_bar)
+
+            st.markdown("---")
+
+            # KESIMPULAN AKHIR
             if map1 == map2:
                 st.info("📌 Analisis: Kedua algoritma (TF-IDF dan BM25) memberikan performa **yang sama** untuk query ini.")
             elif map1 > map2:
                 st.success("🏆 Analisis: Berdasarkan skor MAP, algoritma **TF-IDF** memberikan hasil yang lebih relevan.")
             else:
                 st.success("🏆 Analisis: Berdasarkan skor MAP, algoritma **BM25** memberikan hasil yang lebih relevan.")
-
 
 # --- PAGE 4: DATASET ---
 elif menu == "📂 Dataset Korpus":
