@@ -1234,8 +1234,7 @@ elif menu == "⚙️ Evaluasi Kinerja":
                     key=f"tfidf_{idx}"
                 )
 
-                # Tampilkan judul saja
-                st.markdown(f"📄 *{doc['Title']}*")
+                st.markdown(f"**📄 Doc ID: {doc['Doc_ID']}** | *{doc['Title']}*")
 
                 if is_checked:
                     selected_tfidf.append(idx)
@@ -1256,7 +1255,7 @@ elif menu == "⚙️ Evaluasi Kinerja":
                 )
 
                 # Tampilkan judul saja
-                st.markdown(f"📄 *{doc['Title']}*")
+                st.markdown(f"**📄 Doc ID: {doc['Doc_ID']}** | *{doc['Title']}*")
 
                 if is_checked:
                     selected_bm25.append(idx)
