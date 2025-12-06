@@ -447,9 +447,9 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ==========================================
-# 2. FUNGSI BACKEND (SAMA SEPERTI SEBELUMNYA)
-# ==========================================
+# ==================
+# 2. FUNGSI BACKEND 
+# ==================
 
 @st.cache_resource
 def get_resources():
@@ -996,7 +996,7 @@ elif menu == "🔍 Mesin Pencari":
                     
                     st.markdown(f"""
                     <div class="result-container" style="border-left: 5px solid {color_border};">
-                        <div class="result-score-badge">Score: {scores[i]:.4f}</div>
+                        <div class="result-score-badge">Score: {scores[i]:.4f} | Doc ID: {row['Doc_ID']}</div>
                         <div class="result-link"><a href="{row['URL']}" target="_blank">{hl_title}</a></div>
                         <div class="result-meta">
                             <span>📅 {row['Date']}</span>
